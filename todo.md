@@ -5,3 +5,8 @@
 - [x] Prepare the standalone project for GitHub export.
 - [x] Documentar a publicação do frontend na Netlify pelo repositório GitHub.
 - [x] Documentar a configuração do backend Node e das variáveis para o scanner funcionar fora da Netlify.
+- [x] Explicar a publicação do backend Enviar Diagnose na Railway e a conexão final com a Netlify.
+- [ ] Adaptar a arquitetura para usar o backend Manus no upload, extração e análise de Sysdiagnoses grandes.
+- [ ] Revisar e ajustar limites de upload e extração sem ultrapassar os recursos disponíveis do backend Manus.
+- [ ] Preparar a URL do backend Manus e a política de origem necessária para o frontend Netlify.
+- [ ] Testar o novo fluxo e atualizar o repositório GitHub.
