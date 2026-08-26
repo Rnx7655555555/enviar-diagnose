@@ -21,6 +21,16 @@ async function findAvailablePort(startPort = 3000) {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  app.use((req, res, next) => {
+    const allowedOrigin = process.env.ALLOWED_ORIGIN;
+    if (allowedOrigin && req.headers.origin === allowedOrigin) res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    if (req.method === "OPTIONS") {
+      res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      return res.status(204).end();
+    }
+    return next();
+  });
   registerScannerRoutes(app);
   if (process.env.NODE_ENV === "development") await setupVite(app, server);
   else serveStatic(app);
