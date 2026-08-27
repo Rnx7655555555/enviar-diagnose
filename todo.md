@@ -58,4 +58,4 @@
 - [x] Adicionar os créditos DESENVOLVEDOR / RX7 e AUXILIAR DK na interface pública.
 - [x] Renomear os estados de leitura para LIMPO, WO CONFIRMADO e VERIFICAR.
 - [x] Exibir um resumo compacto de “O que foi encontrado” e deixar os detalhes expansíveis.
-- [ ] Testar a nova leitura visual e publicar a atualização no GitHub e Netlify.
+- [x] Testar a nova leitura visual e publicar a atualização no GitHub e Netlify.
