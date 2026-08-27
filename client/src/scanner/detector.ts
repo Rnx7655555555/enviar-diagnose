@@ -8,12 +8,16 @@ export function isConfiguredSourcePath(sourcePath: string, _signatures: Signatur
   return /^mcsettingsevents\.plist$/i.test(basename(sourcePath));
 }
 
-function isSystemProfileValue(value: PlistValue) {
-  return value.key === "SystemProfileIdentifier" && value.path.startsWith("SystemProfile");
+function isAllowedStructuredValue(value: PlistValue) {
+  return value.key === "SystemProfileIdentifier" && (value.path.startsWith("SystemProfile") || value.path.startsWith("SystemClientRestrictions."));
+}
+
+function blockName(value: PlistValue) {
+  return value.path.split(".")[0] ?? "SystemProfile";
 }
 
 function exactEvidence(signature: SignatureDefinition, sourcePath: string, value: PlistValue): Evidence | null {
-  if (signature.enabled === false || signature.match !== "exact" || signature.isWeak || !isSystemProfileValue(value)) return null;
+  if (signature.enabled === false || signature.match !== "exact" || signature.isWeak || !isAllowedStructuredValue(value)) return null;
   if (!signature.sources.some(source => normalized(source) === normalized(basename(sourcePath)))) return null;
   if (!signature.expectedKeys.includes(value.key)) return null;
   if (normalized(signature.indicator) !== normalized(value.value)) return null;
@@ -31,14 +35,14 @@ function exactEvidence(signature: SignatureDefinition, sourcePath: string, value
     context: value.path,
     contextQuality: "verified",
     match: "EXATA",
-    reason: `Identificador completo corresponde exatamente à regra “${signature.name}” no dicionário SystemProfile.`,
+    reason: `Identificador completo corresponde exatamente à regra “${signature.name}” no dicionário ${blockName(value)}.`,
   };
 }
 
 export function detectInContent(sourcePath: string, _content: string, values: PlistValue[], signatures: SignatureDefinition[]) {
   if (!isConfiguredSourcePath(sourcePath, signatures)) return [] as Evidence[];
   const evidence: Evidence[] = [];
-  for (const value of values.filter(isSystemProfileValue)) {
+  for (const value of values.filter(isAllowedStructuredValue)) {
     for (const signature of signatures) {
       const found = exactEvidence(signature, sourcePath, value);
       if (found) evidence.push(found);
@@ -56,11 +60,11 @@ export function collectManualReviews(sourcePath: string, values: PlistValue[], s
   if (!isConfiguredSourcePath(sourcePath, signatures)) return [] as ManualReview[];
   const confirmedValues = new Set(confirmed.map(item => normalized(item.value)));
   const seen = new Set<string>();
-  return values.filter(isSystemProfileValue).filter(value => !confirmedValues.has(normalized(value.value))).filter(value => {
+  return values.filter(isAllowedStructuredValue).filter(value => !confirmedValues.has(normalized(value.value))).filter(value => {
     const id = normalized(value.value);
     if (seen.has(id)) return false;
     seen.add(id);
-    return true;
+    return matchingReferences(value.value, signatures).length > 0 || /^[a-f\d]{32,}$/i.test(value.value);
   }).slice(0, maxManualReviews).map(value => {
     const references = matchingReferences(value.value, signatures);
     return {
@@ -68,7 +72,7 @@ export function collectManualReviews(sourcePath: string, values: PlistValue[], s
       plistPath: value.path,
       plistKey: value.key,
       identifier: value.value,
-      reason: references.length ? `Prefixo de referência encontrado: ${references.join(", ")}. O prefixo não é confirmação; valide o identificador completo.` : "Identificador completo do SystemProfile fora da tabela de assinaturas exatas.",
+      reason: references.length ? `Prefixo de referência encontrado: ${references.join(", ")}. O prefixo não é confirmação; valide o identificador completo.` : `Identificador completo de ${blockName(value)} fora da tabela de assinaturas exatas.`,
     };
   });
 }

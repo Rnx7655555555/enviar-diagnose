@@ -20,14 +20,16 @@ function matchingDictEnd(text: string, openingDictIndex: number) {
   return -1;
 }
 
-function systemProfileBlock(text: string) {
-  const key = /<key>\s*(SystemProfile[^<]*)\s*<\/key>\s*(<dict(?:\s[^>]*)?>)/gi;
-  const found = key.exec(text);
-  if (!found) return null;
-  const openingDictIndex = found.index + found[0].lastIndexOf(found[2]);
-  const end = matchingDictEnd(text, openingDictIndex);
-  if (end < 0) return null;
-  return { name: decodeXml(found[1]), xml: text.slice(openingDictIndex, end) };
+function permittedBlocks(text: string) {
+  const blocks: Array<{ name: string; xml: string }> = [];
+  const key = /<key>\s*(SystemProfile[^<]*|SystemClientRestrictions)\s*<\/key>\s*(<dict(?:\s[^>]*)?>)/gi;
+  let found: RegExpExecArray | null;
+  while ((found = key.exec(text))) {
+    const openingDictIndex = found.index + found[0].lastIndexOf(found[2]);
+    const end = matchingDictEnd(text, openingDictIndex);
+    if (end >= 0) blocks.push({ name: decodeXml(found[1]), xml: text.slice(openingDictIndex, end) });
+  }
+  return blocks;
 }
 
 function extractDirectIdentifierKeys(profileName: string, xml: string) {
@@ -59,17 +61,17 @@ export function parseFileValues(path: string, data: Uint8Array) {
   const limitations: string[] = [];
   if (!/MCSettingsEvents\.plist$/i.test(path)) return { text: "", values: [] as PlistValue[], limitations };
   if (data[0] === 0x62 && data[1] === 0x70 && data[2] === 0x6c && data[3] === 0x69 && data[4] === 0x73 && data[5] === 0x74) {
-    limitations.push(`${path}: plist binário identificado; o bloco SystemProfile não pode ser lido neste navegador.`);
+    limitations.push(`${path}: plist binário identificado; os blocos SystemProfile e SystemClientRestrictions não podem ser lidos neste navegador.`);
     return { text: "", values: [] as PlistValue[], limitations };
   }
   if (!/<plist[\s>]/i.test(text)) {
     limitations.push(`${path}: XML plist inválido; nenhum identificador foi analisado.`);
     return { text: "", values: [] as PlistValue[], limitations };
   }
-  const profile = systemProfileBlock(text);
-  if (!profile) {
-    limitations.push(`${path}: o dicionário SystemProfile não foi encontrado; os demais dados foram ignorados.`);
+  const blocks = permittedBlocks(text);
+  if (!blocks.length) {
+    limitations.push(`${path}: SystemProfile e SystemClientRestrictions não foram encontrados; os demais dados foram ignorados.`);
     return { text: "", values: [] as PlistValue[], limitations };
   }
-  return { text: "", values: extractDirectIdentifierKeys(profile.name, profile.xml), limitations };
+  return { text: "", values: blocks.flatMap(block => extractDirectIdentifierKeys(block.name, block.xml)).slice(0, maxIdentifiers), limitations };
 }

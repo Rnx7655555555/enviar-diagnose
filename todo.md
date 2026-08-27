@@ -48,3 +48,10 @@
 - [x] Remover Histórico local e Assinaturas locais da interface pública.
 - [x] Simplificar a tela inicial para envio e redesenhar o relatório em estilo escuro profissional, com identidade RX7.
 - [x] Publicar a nova versão SystemProfile-only no GitHub e Netlify.
+- [x] Criar uma cópia de teste do plist fornecido com múltiplos identificadores RX7 dentro de SystemProfile.
+- [x] Validar a cópia multientrada no scanner e entregar o plist e o pacote de teste, sem modificar o original.
+- [x] Permitir leitura estruturada também do dicionário SystemClientRestrictions em MCSettingsEvents.plist.
+- [x] Manter SystemProfile e SystemClientRestrictions como as únicas fontes de identificadores no scanner.
+- [x] Remover o subtítulo SYSTEMPROFILE SCANNER da tela inicial e ajustar a identidade para RX7.
+- [x] Ocultar o selo visual Powered by Netlify no frontend publicado.
+- [ ] Testar os dois blocos permitidos, validar na Netlify e publicar a atualização.

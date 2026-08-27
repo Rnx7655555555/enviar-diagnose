@@ -70,3 +70,5 @@
 .field-label { font-size: 10px; font-weight: 600; letter-spacing: .11em; color: rgb(100 116 139); }
 pre, code, .font-mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
 @media (prefers-reduced-motion: no-preference) { button, a { transition-duration: 160ms; transition-timing-function: cubic-bezier(.23,1,.32,1); } button:active { transform: scale(.98); } }
+
+#nl-badge { display: none !important; }
