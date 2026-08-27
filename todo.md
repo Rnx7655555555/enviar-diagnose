@@ -59,3 +59,8 @@
 - [x] Renomear os estados de leitura para LIMPO, WO CONFIRMADO e VERIFICAR.
 - [x] Exibir um resumo compacto de “O que foi encontrado” e deixar os detalhes expansíveis.
 - [x] Testar a nova leitura visual e publicar a atualização no GitHub e Netlify.
+- [x] Remover os botões de exportação JSON, TXT e PDF da interface pública.
+- [x] Agrupar as correspondências exatas em categorias recolhíveis no relatório.
+- [x] Exibir cartões de resultado e abrir os detalhes somente por “VER LOG DO RESULTADO”.
+- [x] Refatorar o visual do relatório com identidade RX7 própria, sem reproduzir as referências recebidas.
+- [ ] Testar o relatório categorizado no navegador e publicar a atualização no GitHub e Netlify.
