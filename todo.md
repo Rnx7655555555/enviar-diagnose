@@ -70,4 +70,4 @@
 - [x] Implementar uma análise conservadora de Jailbreak, com confirmação somente por evidência técnica forte e independente.
 - [x] Integrar o estado de Jailbreak ao relatório público sem alterar a detecção de proxy.
 - [x] Cobrir Jailbreak com testes de sinais confirmados, sinais isolados e dados irrelevantes.
-- [ ] Validar a análise de Jailbreak com fixtures sintéticas e publicar no GitHub/Netlify.
+- [x] Validar a análise de Jailbreak com fixtures sintéticas e publicar no GitHub/Netlify.
