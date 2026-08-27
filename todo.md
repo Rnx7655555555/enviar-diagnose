@@ -23,11 +23,11 @@
 - [x] Implementar análise local de arquivos Sysdiagnose com Web Worker, extração incremental e liberação de memória.
 - [x] Adicionar banco de assinaturas RX7 separado e motor contextual de baixa incidência de falsos positivos no navegador.
 - [x] Implementar progresso real de extração, parsing, busca e correlação sem bloquear a interface.
-- [ ] Validar o scanner client-side com arquivos compactados de teste e publicar no GitHub/Netlify.
+- [x] Validar o scanner client-side com arquivos compactados de teste e publicar no GitHub/Netlify.
 - [x] Substituído: manter análise de Sysdiagnose no Web Worker local, sem backend Manus.
 - [x] Substituído: aplicar limites de upload e extração no navegador, sem recursos de backend Manus.
 - [x] Substituído: remover URL e política de origem de backend da publicação Netlify.
-- [ ] Testar o novo fluxo e atualizar o repositório GitHub.
+- [x] Testar o novo fluxo e atualizar o repositório GitHub.
 - [x] Validar no navegador uma fixture TAR.GZ de integração, sem alegar validação com SYSdiagnose real.
 - [x] Normalizar a árvore de caminhos TAR relativos e incluir seleção por arrastar e soltar.
 - [ ] Validar com um SYSdiagnose real autorizado antes de qualquer uso operacional.
