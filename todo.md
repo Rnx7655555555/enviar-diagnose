@@ -75,4 +75,4 @@
 - [x] Criar uma triagem separada de painel externo que exija sinais técnicos independentes para confirmação.
 - [x] Atualizar o progresso local com mensagens específicas de preparação, inspeção e conferência, sem texto genérico de leitura.
 - [x] Testar os cenários de painel externo, os isolamentos de proxy/Jailbreak e a interface de carregamento.
-- [ ] Publicar as melhorias no GitHub/Netlify e validar com os arquivos autorizados.
+- [x] Publicar as melhorias no GitHub/Netlify e validar com os arquivos autorizados.
