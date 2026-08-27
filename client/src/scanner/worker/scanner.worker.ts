@@ -2,7 +2,7 @@
 import { BlobReader, Uint8ArrayWriter, ZipReader } from "@zip.js/zip.js";
 import { Gunzip } from "fflate";
 import { collectManualReviews, correlateEvidence, detectInContent, isConfiguredSourcePath, scoreReport } from "../detector";
-import { evaluateExternalPanel, findExternalPanelSignals, isExternalPanelSourcePath } from "../externalPanel";
+import { assessExternalPanelCoverage, evaluateExternalPanel, findExternalPanelSignals, isExternalPanelSourcePath } from "../externalPanel";
 import { evaluateJailbreak, findJailbreakSignals, isJailbreakSourcePath } from "../jailbreak";
 import { parseFileValues } from "../parsers";
 import { buildTree, detectArchiveFormat, safeArchivePath, scanLimits } from "../security";
@@ -183,7 +183,7 @@ async function scan(file: File, signatures: SignatureDefinition[]) {
   correlateEvidence(evidence);
   const uniqueManualReviews = Array.from(new Map(manualReviews.map(item => [`${item.sourcePath}:${item.plistPath}:${item.identifier}`, item])).values());
   const outcome = scoreReport(evidence, uniqueManualReviews);
-  const externalPanel = evaluateExternalPanel(externalPanelFindings, externalPanelSourcesReviewed, Array.from(new Set(externalPanelLimitations)));
+  const externalPanel = evaluateExternalPanel(externalPanelFindings, externalPanelSourcesReviewed, Array.from(new Set(externalPanelLimitations)), assessExternalPanelCoverage(paths.map(item => item.path)));
   const jailbreak = evaluateJailbreak(jailbreakFindings, jailbreakSourcesReviewed, Array.from(new Set(jailbreakLimitations)));
   const report: ScanReport = { id: crypto.randomUUID(), fileName: file.name, fileSize: file.size, fileFormat: format, durationMs: Date.now() - startedAt, createdAt: Date.now(), ...outcome, processedFileCount: paths.filter(item => item.path && !item.path.endsWith("/")).length, relevantFileCount: relevant, evidence, manualReviews: uniqueManualReviews, jailbreak, externalPanel, recommendations: recommendations(evidence, uniqueManualReviews), limitations: Array.from(new Set(limitations)), tree: buildTree(paths) };
   ctx.postMessage({ type: "complete", report } satisfies WorkerEvent);

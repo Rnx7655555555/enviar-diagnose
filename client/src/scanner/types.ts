@@ -78,10 +78,16 @@ export type ExternalPanelResult = "no" | "yes" | "manual";
 export type ExternalPanelFinding = {
   id: string;
   family: "instalador" | "painel" | "distribuicao";
-  sourceKind: "instalacao" | "processos" | "inicializacao";
+  sourceKind: "instalacao" | "processos" | "inicializacao" | "atividade";
   sourcePath: string;
   indicator: string;
   label: string;
+};
+
+export type ExternalPanelCoverage = {
+  status: "available" | "limited";
+  sourceKinds: ExternalPanelFinding["sourceKind"][];
+  note: string;
 };
 
 export type ExternalPanelReport = {
@@ -90,6 +96,7 @@ export type ExternalPanelReport = {
   sourcesReviewed: number;
   limitations: string[];
   summary: string;
+  coverage: ExternalPanelCoverage;
 };
 
 export type ScanReport = {

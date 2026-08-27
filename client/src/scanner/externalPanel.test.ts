@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { evaluateExternalPanel, findExternalPanelSignals, isExternalPanelSourcePath } from "./externalPanel";
+import { assessExternalPanelCoverage, evaluateExternalPanel, findExternalPanelSignals, isExternalPanelSourcePath } from "./externalPanel";
 
 describe("triagem de painel externo", () => {
   it("aceita somente relatórios fechados de instalação, processos e inicialização", () => {
     expect(isExternalPanelSourcePath("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1")).toBe(true);
     expect(isExternalPanelSourcePath("sysdiagnose/ps.txt")).toBe(true);
+    expect(isExternalPanelSourcePath("sysdiagnose/RunningBoard/RunningBoard_state.log")).toBe(true);
     expect(isExternalPanelSourcePath("sysdiagnose/logs/WiFi/network.log")).toBe(false);
     expect(isExternalPanelSourcePath("sysdiagnose/Logs/McState/Shared/MCSettingsEvents.plist")).toBe(false);
   });
@@ -34,5 +35,23 @@ describe("triagem de painel externo", () => {
       ...findExternalPanelSignals("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1", "MIInstallableBundle ID=com.rileytestut.AltStore"),
     ];
     expect(evaluateExternalPanel(findings, 2).status).toBe("yes");
+  });
+
+  it("informa cobertura limitada sem tratar ausência de fonte como painel", () => {
+    const coverage = assessExternalPanelCoverage(["sysdiagnose/logs/MobileInstallation/mobile_installation.log.1", "sysdiagnose/ps.txt"]);
+    expect(coverage.status).toBe("limited");
+    expect(coverage.note).toContain("não equivale a prova de limpeza");
+    expect(evaluateExternalPanel([], 2, [], coverage).status).toBe("no");
+  });
+
+  it("reconhece cobertura passiva base quando as quatro fontes estão presentes", () => {
+    const coverage = assessExternalPanelCoverage([
+      "sysdiagnose/logs/MobileInstallation/mobile_installation.log.1",
+      "sysdiagnose/ps.txt",
+      "sysdiagnose/summaries/launchdLogs.log",
+      "sysdiagnose/RunningBoard/RunningBoard_state.log",
+    ]);
+    expect(coverage.status).toBe("available");
+    expect(coverage.sourceKinds).toEqual(["instalacao", "processos", "inicializacao", "atividade"]);
   });
 });

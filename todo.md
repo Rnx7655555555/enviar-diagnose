@@ -76,3 +76,7 @@
 - [x] Atualizar o progresso local com mensagens específicas de preparação, inspeção e conferência, sem texto genérico de leitura.
 - [x] Testar os cenários de painel externo, os isolamentos de proxy/Jailbreak e a interface de carregamento.
 - [x] Publicar as melhorias no GitHub/Netlify e validar com os arquivos autorizados.
+- [x] Mapear indícios passivos de evasão no SYSdiagnose autorizado, sem tentar reproduzir ou criar bypass.
+- [x] Adicionar uma classificação de cobertura limitada quando fontes técnicas esperadas estiverem ausentes ou incompletas.
+- [x] Reforçar a triagem de painel externo com regras verificáveis e testes de isolamento contra falsos positivos.
+- [ ] Validar o reforço com os arquivos autorizados e publicar a atualização no GitHub/Netlify.

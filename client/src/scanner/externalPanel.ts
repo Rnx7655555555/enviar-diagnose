@@ -1,4 +1,4 @@
-import type { ExternalPanelFinding, ExternalPanelReport } from "./types";
+import type { ExternalPanelCoverage, ExternalPanelFinding, ExternalPanelReport } from "./types";
 
 type SourceKind = ExternalPanelFinding["sourceKind"];
 type FindingFamily = ExternalPanelFinding["family"];
@@ -11,6 +11,8 @@ const externalInstallerBundleIds = new Map<string, string>([
   ["com.usescarlet.ios", "Scarlet"],
 ]);
 
+const expectedSourceKinds: SourceKind[] = ["instalacao", "processos", "inicializacao", "atividade"];
+
 function normalizedPath(path: string) { return path.replace(/\\/g, "/").toLocaleLowerCase(); }
 function normalized(value: string) { return value.trim().toLocaleLowerCase(); }
 
@@ -19,10 +21,24 @@ export function externalPanelSourceKind(path: string): SourceKind | null {
   if (value.includes("/mobileinstallation/") || value.endsWith("/summaries/mobileinstallation.log")) return "instalacao";
   if (value.endsWith("/ps.txt") || value === "ps.txt") return "processos";
   if (value.endsWith("/summaries/launchdlogs.log")) return "inicializacao";
+  if (value.endsWith("/runningboard/runningboard_state.log")) return "atividade";
   return null;
 }
 
 export function isExternalPanelSourcePath(path: string) { return externalPanelSourceKind(path) !== null; }
+
+export function assessExternalPanelCoverage(paths: string[]): ExternalPanelCoverage {
+  const available = new Set(paths.map(externalPanelSourceKind).filter((kind): kind is SourceKind => kind !== null));
+  const sourceKinds = expectedSourceKinds.filter(kind => available.has(kind));
+  const completeBaseline = sourceKinds.length === expectedSourceKinds.length;
+  return {
+    status: completeBaseline ? "available" : "limited",
+    sourceKinds,
+    note: completeBaseline
+      ? "Cobertura passiva disponível: instalação, processos, inicialização e atividade foram conferidos. Não substitui uma análise em tempo real ou forense completa."
+      : `Cobertura passiva limitada: faltou ${expectedSourceKinds.filter(kind => !available.has(kind)).join(", ")}. “Sem evidência” não equivale a prova de limpeza.`,
+  };
+}
 
 function bundleIdentifiers(text: string) {
   const found = new Set<string>();
@@ -62,12 +78,12 @@ export function findExternalPanelSignals(sourcePath: string, text: string): Exte
   return found;
 }
 
-export function evaluateExternalPanel(findings: ExternalPanelFinding[], sourcesReviewed: number, limitations: string[] = []): ExternalPanelReport {
+export function evaluateExternalPanel(findings: ExternalPanelFinding[], sourcesReviewed: number, limitations: string[] = [], coverage: ExternalPanelCoverage = assessExternalPanelCoverage([])): ExternalPanelReport {
   const uniqueFindings = Array.from(new Map(findings.map(item => [`${item.id}:${item.sourceKind}:${item.sourcePath}`, item])).values());
   const families = new Set(uniqueFindings.map(item => item.family));
   const sourceKinds = new Set(uniqueFindings.map(item => item.sourceKind));
   const confirmed = families.size >= 2 && sourceKinds.size >= 2 && uniqueFindings.some(item => item.family === "painel");
-  if (confirmed) return { status: "yes", findings: uniqueFindings, sourcesReviewed, limitations, summary: "Sinais técnicos de painel/modificação e de instalação foram encontrados em fontes independentes." };
-  if (uniqueFindings.length) return { status: "manual", findings: uniqueFindings, sourcesReviewed, limitations, summary: "Há um sinal técnico de instalação ou painel que exige conferência; ele não confirma cheat sozinho." };
-  return { status: "no", findings: [], sourcesReviewed, limitations, summary: "Nenhum conjunto técnico suficiente para indicar painel externo foi encontrado nas fontes passivas avaliadas." };
+  if (confirmed) return { status: "yes", findings: uniqueFindings, sourcesReviewed, limitations, coverage, summary: "Sinais técnicos de painel/modificação e de instalação foram encontrados em fontes independentes." };
+  if (uniqueFindings.length) return { status: "manual", findings: uniqueFindings, sourcesReviewed, limitations, coverage, summary: "Há um sinal técnico de instalação ou painel que exige conferência; ele não confirma cheat sozinho." };
+  return { status: "no", findings: [], sourcesReviewed, limitations, coverage, summary: "Nenhuma combinação técnica suficiente foi observada nas fontes passivas disponíveis. Isso não prova ausência de painel." };
 }
