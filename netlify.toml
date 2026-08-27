@@ -4,4 +4,3 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  VITE_SCANNER_API_URL = "https://rx7sysdiag-wcpkppib.manus.space"

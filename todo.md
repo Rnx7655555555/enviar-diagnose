@@ -9,7 +9,25 @@
 - [x] Exibir progresso real de upload, extração, análise e finalização no fluxo público.
 - [x] Adicionar etapas numeradas, percentual verificável, contadores de arquivos e estimativa de tempo baseada no andamento.
 - [x] Testar a nova experiência de progresso e publicar a atualização no GitHub para a Netlify.
-- [ ] Adaptar a arquitetura para usar o backend Manus no upload, extração e análise de Sysdiagnoses grandes.
-- [ ] Revisar e ajustar limites de upload e extração sem ultrapassar os recursos disponíveis do backend Manus.
-- [ ] Preparar a URL do backend Manus e a política de origem necessária para o frontend Netlify.
+- [x] Substituído: eliminar a dependência de conexão entre a Netlify e o endpoint Manus para a análise básica.
+- [x] Substituído: remover o upload para backend; o arquivo agora é processado localmente pelo navegador.
+- [x] Avaliar serviços gratuitos de backend compatíveis com upload e análise temporária de arquivos de até 350 MB.
+- [x] Substituído: não preparar backend externo para o scanner; a arquitetura adotada é estática e client-side.
+- [x] Substituído: não configurar VM ou TLS de backend para a análise local.
+- [x] Substituído: não manter URL de API na Netlify para o scanner client-side.
+- [x] Identificar e documentar uma alternativa de backend sem cartão que suporte análise temporária de arquivos grandes.
+- [x] Preparar um prompt completo para implementar o Enviar Diagnose no Lovable com backend de análise real.
+- [x] Preparar um prompt específico para o Lovable criar e hospedar o backend de análise do Enviar Diagnose.
+- [x] Substituído: não preparar alternativa de nuvem, pois o scanner não necessita de backend para a análise básica.
+- [x] Remover a dependência de backend para upload, extração e análise do Enviar Diagnose.
+- [x] Implementar análise local de arquivos Sysdiagnose com Web Worker, extração incremental e liberação de memória.
+- [x] Adicionar banco de assinaturas RX7 separado e motor contextual de baixa incidência de falsos positivos no navegador.
+- [x] Implementar progresso real de extração, parsing, busca e correlação sem bloquear a interface.
+- [ ] Validar o scanner client-side com arquivos compactados de teste e publicar no GitHub/Netlify.
+- [x] Substituído: manter análise de Sysdiagnose no Web Worker local, sem backend Manus.
+- [x] Substituído: aplicar limites de upload e extração no navegador, sem recursos de backend Manus.
+- [x] Substituído: remover URL e política de origem de backend da publicação Netlify.
 - [ ] Testar o novo fluxo e atualizar o repositório GitHub.
+- [x] Validar no navegador uma fixture TAR.GZ de integração, sem alegar validação com SYSdiagnose real.
+- [x] Normalizar a árvore de caminhos TAR relativos e incluir seleção por arrastar e soltar.
+- [ ] Validar com um SYSdiagnose real autorizado antes de qualquer uso operacional.

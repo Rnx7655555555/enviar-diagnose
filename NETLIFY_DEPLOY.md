@@ -1,51 +1,46 @@
-# Guia de publicação do Enviar Diagnose na Netlify
+# Publicar o Enviar Diagnose na Netlify
 
-Este repositório contém o **frontend**, que a Netlify publica. O backend Manus é responsável por receber e analisar os arquivos Sysdiagnose. A Netlify hospeda somente a interface pública, enquanto o endpoint de análise fica no projeto Manus.
+O **Enviar Diagnose** é uma aplicação estática. A Netlify hospeda apenas os arquivos do frontend; o SYSdiagnose é aberto e analisado no navegador de quem o seleciona. Não há URL de backend, configuração CORS ou variável de API a informar para o scanner funcionar.
 
-## 1. Conectar o GitHub à Netlify
+## Conectar o GitHub
 
-1. Acesse [Netlify](https://app.netlify.com/) e entre com sua conta GitHub.
-2. Clique em **Add new project** e depois em **Import an existing project**.
-3. Escolha **GitHub**, autorize a Netlify a acessar seus repositórios quando ela solicitar e selecione `Rnx7655555/enviar-diagnose`.
-4. Mantenha a branch de produção como `master`.
+1. Entre em [Netlify](https://app.netlify.com/) com a conta vinculada ao GitHub.
+2. Escolha **Add new project** e depois **Import an existing project**.
+3. Selecione o repositório `Rnx7655555555/enviar-diagnose` e a branch `master`.
+4. Confirme os valores abaixo e escolha **Deploy site**.
 
-O repositório já possui o arquivo `netlify.toml`; portanto, a Netlify deve usar automaticamente os valores abaixo:
-
-| Campo da Netlify | Valor |
+| Campo na Netlify | Valor |
 |---|---|
-| Base directory | deixe vazio |
+| Base directory | deixe em branco |
 | Build command | `pnpm build` |
 | Publish directory | `dist/public` |
 | Node version | `22` |
 
-Clique em **Deploy site**. Quando terminar, copie a URL atribuída pela Netlify, por exemplo `https://seu-site.netlify.app`.
+O arquivo `netlify.toml` já contém essas opções. O endereço atualmente configurado para a publicação é `https://rx7-scan-ios.netlify.app`.
 
-## 2. Backend Manus
+## Atualizações
 
-O endpoint `POST /api/public-scan` fica no backend Manus, em `https://rx7sysdiag-wcpkppib.manus.space`. Ele recebe o arquivo, valida o formato, extrai de forma limitada e executa a análise. O domínio Netlify `https://rx7-scan-ios.netlify.app` está autorizado no backend Manus para chamadas do navegador.
+Após modificar o projeto localmente, execute as verificações e envie a alteração para o GitHub:
 
-## 3. Ligar o frontend ao backend
+```bash
+pnpm check
+pnpm test
+pnpm build
+git add .
+git commit -m "Atualiza scanner local"
+git push origin master
+```
 
-O `netlify.toml` já define `VITE_SCANNER_API_URL=https://rx7sysdiag-wcpkppib.manus.space` durante o build. Não é necessário criar essa variável manualmente na Netlify. Depois do próximo `git push`, a Netlify recompila o site com a URL correta.
+Com a integração GitHub–Netlify ativa, o push inicia um novo deploy automaticamente. Na aba **Deploys** da Netlify, aguarde o estado **Published** antes de compartilhar a versão atualizada.
 
-## 4. Testar antes de divulgar
+## Teste depois da publicação
 
-1. Abra a URL da Netlify em uma janela anônima.
-2. Escolha um arquivo Sysdiagnose `.tar.gz`, `.tgz` ou `.zip` de até 350 MB.
-3. Clique em **Iniciar análise**.
-4. Confirme que aparece o relatório com score, evidências e recomendações.
-5. Teste um arquivo inválido; o sistema deve recusá-lo antes da análise.
+Abra o site em janela privada, selecione um `.tar.gz`, `.tgz` ou `.zip` de até 350 MB e inicie a análise. Durante o processamento, a tela deve informar a etapa, os bytes lidos e os arquivos relevantes já analisados. Ao final, confira o relatório, a árvore do arquivo e as exportações JSON, TXT e PDF.
 
-Se o upload falhar com bloqueio de CORS, confira se a URL do site continua sendo `https://rx7-scan-ios.netlify.app`. Se você trocar de domínio Netlify, a origem autorizada precisa ser atualizada no backend Manus. Se a página abrir, mas o botão de análise retornar erro de rede, confira os logs do projeto Manus e faça um novo deploy na Netlify.
-
-## 5. Atualizações futuras
-
-Sempre que houver uma alteração no frontend, faça `git push` para a branch `master`. Como a Netlify está conectada ao GitHub, ela executará um novo build e publicará a atualização automaticamente. Alterações no motor de análise são publicadas pelo projeto Manus.
-
-> O `netlify.toml` já define o diretório público correto. Somente os arquivos em `dist/public` são publicados pela Netlify; o servidor Node não é incluído nesse deploy estático.
+> Faça o primeiro teste com um arquivo de que você tenha autorização para tratar. A fixture usada durante o desenvolvimento confirma a integração técnica do fluxo, mas não equivale à validação com um SYSdiagnose real.
 
 ## Referências
 
 [1] [Netlify — Build configuration overview](https://docs.netlify.com/build/configure-builds/overview/)
 
-[2] [Netlify — Get started with environment variables](https://docs.netlify.com/build/environment-variables/get-started/)
+[2] [Netlify — Deploys from Git](https://docs.netlify.com/site-deploys/create-deploys/)
