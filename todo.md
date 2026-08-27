@@ -36,4 +36,4 @@
 - [x] Registrar ocorrências ambíguas como VERIFICAR MANUALMENTE, sem classificá-las como detecção.
 - [x] Atualizar o relatório para os estados SIM, NÃO e VERIFICAR MANUALMENTE, sem score de risco.
 - [x] Cobrir os seis cenários anti-falso-positivo solicitados com testes automatizados.
-- [ ] Publicar no GitHub e validar na Netlify a correção de precisão e resultados estruturados.
+- [x] Publicar no GitHub e validar na Netlify a correção de precisão e resultados estruturados.
