@@ -47,4 +47,4 @@
 - [x] Substituir a tabela atual pela lista RX7 fornecida, impedindo confirmação por códigos curtos isolados.
 - [x] Remover Histórico local e Assinaturas locais da interface pública.
 - [x] Simplificar a tela inicial para envio e redesenhar o relatório em estilo escuro profissional, com identidade RX7.
-- [ ] Publicar a nova versão SystemProfile-only no GitHub e Netlify.
+- [x] Publicar a nova versão SystemProfile-only no GitHub e Netlify.
