@@ -64,3 +64,5 @@
 - [x] Exibir cartões de resultado e abrir os detalhes somente por “VER LOG DO RESULTADO”.
 - [x] Refatorar o visual do relatório com identidade RX7 própria, sem reproduzir as referências recebidas.
 - [x] Testar o relatório categorizado no navegador e publicar a atualização no GitHub e Netlify.
+- [x] Completar a tabela RX7 com todos os identificadores originais fornecidos, mantendo códigos curtos apenas para revisão manual.
+- [x] Validar a tabela completa contra os limites dos blocos SystemProfile* e SystemClientRestrictions e publicar no GitHub/Netlify.

@@ -82,6 +82,17 @@ describe("scanner SystemProfile", () => {
     expect(scoreReport(evidence, manual).result).toBe("manual");
   });
 
+  it("mantém códigos curtos da tabela como revisão em SystemClientRestrictions", () => {
+    const identifier = "7041149b4d039be0ec0f497867df7e62b4c24f179bf2d92a58e96626aa15270e94d4bfe6a";
+    const prefix = exactRule({ id: "zeex-704", name: "Zeex Free/VIP · 704", category: "Zeex Free/VIP", indicator: "704", match: "prefix", isWeak: true, severity: "informativo", baseConfidence: "informativo" });
+    const values = [clientRestrictionValue(identifier)];
+    const evidence = detectInContent(source, "", values, [prefix]);
+    const manual = collectManualReviews(source, values, [prefix], evidence);
+    expect(evidence).toHaveLength(0);
+    expect(manual[0]?.plistPath).toBe(`SystemClientRestrictions.${identifier}`);
+    expect(scoreReport(evidence, manual).result).toBe("manual");
+  });
+
   it("ignora por completo dados de outro arquivo e outras chaves", () => {
     const values = [systemProfileValue("com.xtremo.mobile")];
     expect(detectInContent("sysdiagnose/other.plist", "", values, [exactRule()])).toHaveLength(0);
