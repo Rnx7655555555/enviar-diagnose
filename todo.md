@@ -54,4 +54,4 @@
 - [x] Manter SystemProfile e SystemClientRestrictions como as únicas fontes de identificadores no scanner.
 - [x] Remover o subtítulo SYSTEMPROFILE SCANNER da tela inicial e ajustar a identidade para RX7.
 - [x] Ocultar o selo visual Powered by Netlify no frontend publicado.
-- [ ] Testar os dois blocos permitidos, validar na Netlify e publicar a atualização.
+- [x] Testar os dois blocos permitidos, validar na Netlify e publicar a atualização.
