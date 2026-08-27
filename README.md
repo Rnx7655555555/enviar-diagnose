@@ -13,11 +13,12 @@ O scanner aceita `.tar.gz`, `.tgz` e `.zip`, detectando o formato pelos bytes in
 | Tamanho máximo do arquivo | 350 MB |
 | Extração | TAR.GZ por chunks e ZIP com leitura de Blob no Web Worker |
 | Proteções | Cabeçalho, path traversal, número de entradas, expansão máxima e limite por arquivo relevante |
-| Assinaturas | `/data/signatures.json`, com cópia e alterações locais no navegador |
-| Indicadores curtos | Informativos ou de baixa confiança quando isolados; não confirmam nada sozinhos |
+| Assinaturas | `/data/signatures.json`, com fonte, chave, tamanho e modo de comparação declarados |
+| Comparação | Valores completos e campos estruturados; não há busca global por substring |
+| Resultado | `SIM`, `NÃO` ou `VERIFICAR MANUALMENTE`, sem score de risco |
 | Plist binário | Detectado e informado como limitação; não é interpretado como se fosse XML |
 
-Em aparelhos ou navegadores com pouca memória, arquivos grandes podem não conseguir ser processados mesmo abaixo de 350 MB. O aplicativo informa limites de leitura e formatos não interpretados no relatório, sem criar resultado simulado.
+Em aparelhos ou navegadores com pouca memória, arquivos grandes podem não conseguir ser processados mesmo abaixo de 350 MB. O aplicativo informa limites de leitura e formatos não interpretados no relatório, sem criar resultado simulado. Um identificador estruturado sem regra RX7 exata aparece em **VERIFICAR MANUALMENTE**; ele não é convertido em detecção.
 
 ## Desenvolvimento local
 

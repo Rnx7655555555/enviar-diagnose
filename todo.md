@@ -31,3 +31,9 @@
 - [x] Validar no navegador uma fixture TAR.GZ de integração, sem alegar validação com SYSdiagnose real.
 - [x] Normalizar a árvore de caminhos TAR relativos e incluir seleção por arrastar e soltar.
 - [ ] Validar com um SYSdiagnose real autorizado antes de qualquer uso operacional.
+- [x] Restringir a análise de identificadores às fontes explicitamente permitidas pelas assinaturas.
+- [x] Substituir matching por substring curta por comparação exata de valores estruturados e identificadores completos.
+- [x] Registrar ocorrências ambíguas como VERIFICAR MANUALMENTE, sem classificá-las como detecção.
+- [x] Atualizar o relatório para os estados SIM, NÃO e VERIFICAR MANUALMENTE, sem score de risco.
+- [x] Cobrir os seis cenários anti-falso-positivo solicitados com testes automatizados.
+- [ ] Publicar no GitHub e validar na Netlify a correção de precisão e resultados estruturados.

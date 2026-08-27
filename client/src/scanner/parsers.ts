@@ -34,6 +34,19 @@ function xmlPlistPairs(text: string) {
     const value = match[6] ? match[6] : decodeXml(match[3] ?? "");
     if (key) values.push({ path: `Dictionary.${key}`, key, value, type: match[2] ?? match[5] ?? "unknown" });
   }
+  const arrays = /<key>([\s\S]*?)<\/key>\s*<array(?:\s[^>]*)?>([\s\S]*?)<\/array>/gi;
+  while ((match = arrays.exec(text)) && values.length < MAX_VALUES) {
+    const key = decodeXml(match[1] ?? "");
+    const entries = match[2] ?? "";
+    const scalarEntry = /<(string|integer|real|date|data)(?:\s[^>]*)?>([\s\S]*?)<\/\1>|<(true|false)\s*\/>/gi;
+    let index = 0;
+    let item: RegExpExecArray | null;
+    while ((item = scalarEntry.exec(entries)) && values.length < MAX_VALUES) {
+      const value = item[4] ? item[4] : decodeXml(item[2] ?? "");
+      if (key) values.push({ path: `Dictionary.${key}[${index}]`, key, value, type: item[1] ?? item[4] ?? "unknown" });
+      index += 1;
+    }
+  }
   return values;
 }
 
@@ -45,7 +58,7 @@ export function parseFileValues(path: string, data: Uint8Array) {
     limitations.push(`${path}: plist binário identificado; a leitura estruturada desse formato ainda não é suportada neste navegador.`);
     return { text: "", values: [] as PlistValue[], limitations };
   }
-  if (lower.endsWith(".plist") && /<plist[\s>]/i.test(text)) return { text, values: xmlPlistPairs(text), limitations };
+  if ((lower.endsWith(".plist") || /systemprofile$/i.test(path)) && /<plist[\s>]/i.test(text)) return { text, values: xmlPlistPairs(text), limitations };
   const values: PlistValue[] = [];
   try {
     if (lower.endsWith(".json")) flatten(JSON.parse(text), "JSON", values);

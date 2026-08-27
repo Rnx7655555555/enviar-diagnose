@@ -1,7 +1,8 @@
 export const confidenceLevels = ["informativo", "baixa", "media", "alta", "confirmada"] as const;
 export type ConfidenceLevel = (typeof confidenceLevels)[number];
 
-export type IndicatorType = "plist-key" | "plist-value" | "string" | "bundle" | "domain" | "ip" | "certificate" | "filename" | "regex";
+export type IndicatorType = "plist-key" | "plist-value" | "identifier" | "filename";
+export type MatchMode = "exact" | "prefix";
 
 export type SignatureDefinition = {
   id: string;
@@ -9,6 +10,9 @@ export type SignatureDefinition = {
   category: string;
   indicator: string;
   type: IndicatorType;
+  match: MatchMode;
+  sources: string[];
+  expectedLengths?: number[];
   severity: "informativo" | "baixa" | "media" | "alta" | "critica";
   baseConfidence: ConfidenceLevel;
   expectedFiles: string[];
@@ -38,10 +42,18 @@ export type Evidence = {
   context: string;
   reason: string;
   contextQuality: "isolated" | "contextual" | "verified";
-  score: number;
+  match: "EXATA" | "PREFIXO";
 };
 
-export type ScanResult = "clean" | "suspicious" | "evidence";
+export type ManualReview = {
+  sourcePath: string;
+  plistPath: string | null;
+  plistKey: string | null;
+  identifier: string;
+  reason: string;
+};
+
+export type ScanResult = "no" | "yes" | "manual";
 
 export type ScanReport = {
   id: string;
@@ -51,11 +63,10 @@ export type ScanReport = {
   durationMs: number;
   createdAt: number;
   result: ScanResult;
-  score: number;
-  overallConfidence: ConfidenceLevel;
   processedFileCount: number;
   relevantFileCount: number;
   evidence: Evidence[];
+  manualReviews: ManualReview[];
   recommendations: string[];
   limitations: string[];
   tree: ArchiveNode[];
