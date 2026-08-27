@@ -1,70 +1,75 @@
-import { XMLParser } from "fast-xml-parser";
 import type { PlistValue } from "./types";
 
-const MAX_DEPTH = 16;
-const MAX_VALUES = 1_200;
 const decoder = new TextDecoder("utf-8", { fatal: false });
-
-function scalar(value: unknown) {
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
-  return "";
-}
-
-function flatten(value: unknown, path: string, values: PlistValue[], key = "", depth = 0) {
-  if (depth > MAX_DEPTH || values.length >= MAX_VALUES) return;
-  const plain = scalar(value);
-  if (plain) {
-    values.push({ path, key: key || path.split(".").at(-1) || "value", value: plain });
-    return;
-  }
-  if (Array.isArray(value)) value.forEach((entry, index) => flatten(entry, `${path}[${index}]`, values, key, depth + 1));
-  else if (value && typeof value === "object") Object.entries(value as Record<string, unknown>).forEach(([childKey, entry]) => flatten(entry, path ? `${path}.${childKey}` : childKey, values, childKey, depth + 1));
-}
+const maxIdentifiers = 400;
 
 function decodeXml(value: string) {
   return value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim();
 }
 
-function xmlPlistPairs(text: string) {
-  const values: PlistValue[] = [];
-  const pair = /<key>([\s\S]*?)<\/key>\s*<(string|integer|real|date|data|true|false)(?:\s[^>]*)?>([\s\S]*?)<\/\2>|<key>([\s\S]*?)<\/key>\s*<(true|false)\s*\/>/gi;
+function matchingDictEnd(text: string, openingDictIndex: number) {
+  const tag = /<dict(?:\s[^>]*)?\/?\s*>|<\/dict>/gi;
+  tag.lastIndex = openingDictIndex;
+  let depth = 0;
   let match: RegExpExecArray | null;
-  while ((match = pair.exec(text)) && values.length < MAX_VALUES) {
-    const key = decodeXml(match[1] ?? match[4] ?? "");
-    const value = match[6] ? match[6] : decodeXml(match[3] ?? "");
-    if (key) values.push({ path: `Dictionary.${key}`, key, value, type: match[2] ?? match[5] ?? "unknown" });
+  while ((match = tag.exec(text))) {
+    if (match[0].startsWith("</")) depth -= 1;
+    else if (!match[0].endsWith("/>")) depth += 1;
+    if (depth === 0) return tag.lastIndex;
   }
-  const arrays = /<key>([\s\S]*?)<\/key>\s*<array(?:\s[^>]*)?>([\s\S]*?)<\/array>/gi;
-  while ((match = arrays.exec(text)) && values.length < MAX_VALUES) {
-    const key = decodeXml(match[1] ?? "");
-    const entries = match[2] ?? "";
-    const scalarEntry = /<(string|integer|real|date|data)(?:\s[^>]*)?>([\s\S]*?)<\/\1>|<(true|false)\s*\/>/gi;
-    let index = 0;
-    let item: RegExpExecArray | null;
-    while ((item = scalarEntry.exec(entries)) && values.length < MAX_VALUES) {
-      const value = item[4] ? item[4] : decodeXml(item[2] ?? "");
-      if (key) values.push({ path: `Dictionary.${key}[${index}]`, key, value, type: item[1] ?? item[4] ?? "unknown" });
-      index += 1;
+  return -1;
+}
+
+function systemProfileBlock(text: string) {
+  const key = /<key>\s*(SystemProfile[^<]*)\s*<\/key>\s*(<dict(?:\s[^>]*)?>)/gi;
+  const found = key.exec(text);
+  if (!found) return null;
+  const openingDictIndex = found.index + found[0].lastIndexOf(found[2]);
+  const end = matchingDictEnd(text, openingDictIndex);
+  if (end < 0) return null;
+  return { name: decodeXml(found[1]), xml: text.slice(openingDictIndex, end) };
+}
+
+function extractDirectIdentifierKeys(profileName: string, xml: string) {
+  const values: PlistValue[] = [];
+  const token = /<key>([\s\S]*?)<\/key>|<dict(?:\s[^>]*)?\/?\s*>|<\/dict>/gi;
+  let depth = 0;
+  let currentKey: string | null = null;
+  let match: RegExpExecArray | null;
+  while ((match = token.exec(xml)) && values.length < maxIdentifiers) {
+    if (match[1] !== undefined) {
+      if (depth === 1) currentKey = decodeXml(match[1]);
+      continue;
     }
+    if (match[0].startsWith("</")) {
+      depth -= 1;
+      continue;
+    }
+    if (depth === 1 && currentKey) {
+      values.push({ path: `${profileName}.${currentKey}`, key: "SystemProfileIdentifier", value: currentKey, type: "dictionary-key" });
+      currentKey = null;
+    }
+    if (!match[0].endsWith("/>")) depth += 1;
   }
   return values;
 }
 
 export function parseFileValues(path: string, data: Uint8Array) {
   const text = decoder.decode(data);
-  const lower = path.toLowerCase();
   const limitations: string[] = [];
+  if (!/MCSettingsEvents\.plist$/i.test(path)) return { text: "", values: [] as PlistValue[], limitations };
   if (data[0] === 0x62 && data[1] === 0x70 && data[2] === 0x6c && data[3] === 0x69 && data[4] === 0x73 && data[5] === 0x74) {
-    limitations.push(`${path}: plist binário identificado; a leitura estruturada desse formato ainda não é suportada neste navegador.`);
+    limitations.push(`${path}: plist binário identificado; o bloco SystemProfile não pode ser lido neste navegador.`);
     return { text: "", values: [] as PlistValue[], limitations };
   }
-  if ((lower.endsWith(".plist") || /systemprofile$/i.test(path)) && /<plist[\s>]/i.test(text)) return { text, values: xmlPlistPairs(text), limitations };
-  const values: PlistValue[] = [];
-  try {
-    if (lower.endsWith(".json")) flatten(JSON.parse(text), "JSON", values);
-    else if (lower.endsWith(".xml")) flatten(new XMLParser({ ignoreAttributes: false, parseTagValue: false, trimValues: true }).parse(text), "XML", values);
-  } catch {
-    limitations.push(`${path}: estrutura inválida; foi analisado apenas como texto quando aplicável.`);
+  if (!/<plist[\s>]/i.test(text)) {
+    limitations.push(`${path}: XML plist inválido; nenhum identificador foi analisado.`);
+    return { text: "", values: [] as PlistValue[], limitations };
   }
-  return { text, values, limitations };
+  const profile = systemProfileBlock(text);
+  if (!profile) {
+    limitations.push(`${path}: o dicionário SystemProfile não foi encontrado; os demais dados foram ignorados.`);
+    return { text: "", values: [] as PlistValue[], limitations };
+  }
+  return { text: "", values: extractDirectIdentifierKeys(profile.name, profile.xml), limitations };
 }

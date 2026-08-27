@@ -1,42 +1,22 @@
 import type { Evidence, ManualReview, PlistValue, ScanResult, SignatureDefinition } from "./types";
 
-const maxManualReviews = 40;
+const maxManualReviews = 80;
 const normalized = (value: string) => value.trim().toLocaleLowerCase();
 const basename = (path: string) => path.replace(/\\/g, "/").split("/").at(-1) ?? path;
-const identifierPattern = /^(?:[a-f0-9]{32,128}|[a-z0-9]{4,}(?:-[a-z0-9]{2,}){1,})$/i;
-const identifierKeyPattern = /(?:identifiers?|profile|payload|uuid|udid|bundle|certificate|application|app)(?:id|identifier)?$/i;
 
-export function isConfiguredSourcePath(sourcePath: string, signatures: SignatureDefinition[]) {
-  const source = normalized(basename(sourcePath));
-  return signatures.some(signature => signature.enabled !== false && signature.sources.some(allowed => source === normalized(allowed)));
+export function isConfiguredSourcePath(sourcePath: string, _signatures: SignatureDefinition[]) {
+  return /^mcsettingsevents\.plist$/i.test(basename(sourcePath));
 }
 
-function isExpectedSource(sourcePath: string, signature: SignatureDefinition) {
-  const source = normalized(basename(sourcePath));
-  return signature.sources.some(allowed => source === normalized(allowed));
+function isSystemProfileValue(value: PlistValue) {
+  return value.key === "SystemProfileIdentifier" && value.path.startsWith("SystemProfile");
 }
 
-function isExpectedKey(value: PlistValue, signature: SignatureDefinition) {
-  return signature.expectedKeys.length === 0 || signature.expectedKeys.some(key => normalized(key) === normalized(value.key));
-}
-
-function matchesCandidate(value: string, signature: SignatureDefinition) {
-  const candidate = normalized(value);
-  const indicator = normalized(signature.indicator);
-  if (!candidate || !indicator) return false;
-  if (signature.match === "prefix" && (!signature.expectedLengths?.length || signature.expectedKeys.length === 0)) return false;
-  if (signature.expectedLengths?.length && !signature.expectedLengths.includes(value.length)) return false;
-  if (signature.type === "identifier" && !identifierPattern.test(value)) return false;
-  return signature.match === "prefix" ? candidate.startsWith(indicator) : candidate === indicator;
-}
-
-function contextSnippet(value: string) {
-  return value.length > 300 ? `${value.slice(0, 297)}...` : value;
-}
-
-function makeEvidence(signature: SignatureDefinition, sourcePath: string, plist: PlistValue): Evidence | null {
-  const target = signature.type === "plist-key" ? plist.key : signature.type === "filename" ? basename(sourcePath) : plist.value;
-  if (!isExpectedSource(sourcePath, signature) || !isExpectedKey(plist, signature) || !matchesCandidate(target, signature)) return null;
+function exactEvidence(signature: SignatureDefinition, sourcePath: string, value: PlistValue): Evidence | null {
+  if (signature.enabled === false || signature.match !== "exact" || signature.isWeak || !isSystemProfileValue(value)) return null;
+  if (!signature.sources.some(source => normalized(source) === normalized(basename(sourcePath)))) return null;
+  if (!signature.expectedKeys.includes(value.key)) return null;
+  if (normalized(signature.indicator) !== normalized(value.value)) return null;
   return {
     category: signature.category,
     signature: signature.name,
@@ -45,50 +25,52 @@ function makeEvidence(signature: SignatureDefinition, sourcePath: string, plist:
     severity: signature.severity,
     confidence: "alta",
     sourcePath,
-    plistPath: plist.path,
-    plistKey: plist.key,
-    value: plist.value,
-    context: contextSnippet(plist.value),
-    contextQuality: "verified",
-    match: signature.match === "prefix" ? "PREFIXO" : "EXATA",
-    reason: `Correspondência ${signature.match === "prefix" ? "por prefixo com estrutura exigida" : "EXATA"} para a regra “${signature.name}”, no arquivo permitido e na chave estruturada esperada.`,
-  };
-}
-
-function isCandidateIdentifier(value: PlistValue) {
-  return identifierPattern.test(value.value) && identifierKeyPattern.test(value.key);
-}
-
-function manualReview(sourcePath: string, value: PlistValue): ManualReview {
-  return {
-    sourcePath,
     plistPath: value.path,
     plistKey: value.key,
-    identifier: value.value,
-    reason: "Identificador estruturado encontrado em uma fonte permitida, mas não há correspondência EXATA ativa na tabela RX7.",
+    value: value.value,
+    context: value.path,
+    contextQuality: "verified",
+    match: "EXATA",
+    reason: `Identificador completo corresponde exatamente à regra “${signature.name}” no dicionário SystemProfile.`,
   };
 }
 
 export function detectInContent(sourcePath: string, _content: string, values: PlistValue[], signatures: SignatureDefinition[]) {
+  if (!isConfiguredSourcePath(sourcePath, signatures)) return [] as Evidence[];
   const evidence: Evidence[] = [];
-  if (!isConfiguredSourcePath(sourcePath, signatures)) return evidence;
-  for (const signature of signatures.filter(item => item.enabled !== false)) {
-    const match = values.find(value => makeEvidence(signature, sourcePath, value));
-    if (match) evidence.push(makeEvidence(signature, sourcePath, match)!);
+  for (const value of values.filter(isSystemProfileValue)) {
+    for (const signature of signatures) {
+      const found = exactEvidence(signature, sourcePath, value);
+      if (found) evidence.push(found);
+    }
   }
   return evidence;
 }
 
+function matchingReferences(identifier: string, signatures: SignatureDefinition[]) {
+  const value = normalized(identifier);
+  return signatures.filter(signature => signature.enabled !== false && signature.match === "prefix" && signature.sources.some(source => normalized(source) === "mcsettingsevents.plist") && value.startsWith(normalized(signature.indicator))).map(signature => signature.name);
+}
+
 export function collectManualReviews(sourcePath: string, values: PlistValue[], signatures: SignatureDefinition[], confirmed: Evidence[]) {
   if (!isConfiguredSourcePath(sourcePath, signatures)) return [] as ManualReview[];
-  const confirmedValues = new Set(confirmed.filter(item => item.sourcePath === sourcePath).map(item => normalized(item.value)));
+  const confirmedValues = new Set(confirmed.map(item => normalized(item.value)));
   const seen = new Set<string>();
-  return values.filter(isCandidateIdentifier).filter(value => !confirmedValues.has(normalized(value.value))).filter(value => {
-    const key = `${value.key}:${normalized(value.value)}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+  return values.filter(isSystemProfileValue).filter(value => !confirmedValues.has(normalized(value.value))).filter(value => {
+    const id = normalized(value.value);
+    if (seen.has(id)) return false;
+    seen.add(id);
     return true;
-  }).slice(0, maxManualReviews).map(value => manualReview(sourcePath, value));
+  }).slice(0, maxManualReviews).map(value => {
+    const references = matchingReferences(value.value, signatures);
+    return {
+      sourcePath,
+      plistPath: value.path,
+      plistKey: value.key,
+      identifier: value.value,
+      reason: references.length ? `Prefixo de referência encontrado: ${references.join(", ")}. O prefixo não é confirmação; valide o identificador completo.` : "Identificador completo do SystemProfile fora da tabela de assinaturas exatas.",
+    };
+  });
 }
 
 export function correlateEvidence(evidence: Evidence[]) { return evidence; }

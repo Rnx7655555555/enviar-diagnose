@@ -1,22 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { collectManualReviews, detectInContent, scoreReport } from "./detector";
+import { parseFileValues } from "./parsers";
 import type { PlistValue, SignatureDefinition } from "./types";
 
-const source = "sysdiagnose/Logs/Mcstate/Shared/McSettingsEvents.plist";
-const hashWithB4 = "3b039be0ec0f497867df7e62b4c24f179bf2d92a58e96626aa15270e94d4bfe6a";
-const hashWithD4 = "06af329ab9f4bbde8551a7d25ad447e1a8427abb4d11ec938740ad071f26894da";
+const source = "sysdiagnose/Logs/Mcstate/Shared/MCSettingsEvents.plist";
+const systemProfileValue = (identifier: string): PlistValue => ({ path: `SystemProfileRecords.${identifier}`, key: "SystemProfileIdentifier", value: identifier, type: "dictionary-key" });
+const outsideValue = (identifier: string): PlistValue => ({ path: `SystemSettings.${identifier}`, key: "SystemProfileIdentifier", value: identifier, type: "dictionary-key" });
 
-const rule = (overrides: Partial<SignatureDefinition> = {}): SignatureDefinition => ({
-  id: "rule",
-  name: "Regra de teste",
-  category: "Teste",
-  indicator: "dash-proxy",
-  type: "plist-value",
+const exactRule = (overrides: Partial<SignatureDefinition> = {}): SignatureDefinition => ({
+  id: "xtremo",
+  name: "XTREMO",
+  category: "XTREMO",
+  indicator: "com.xtremo.mobile",
+  type: "identifier",
   match: "exact",
-  sources: ["McSettingsEvents.plist"],
-  expectedKeys: ["HTTPProxy"],
-  expectedFiles: ["McSettingsEvents.plist"],
-  contextExpected: [],
+  sources: ["MCSettingsEvents.plist"],
+  expectedFiles: [],
+  expectedKeys: ["SystemProfileIdentifier"],
+  contextExpected: ["SystemProfile"],
   severity: "alta",
   baseConfidence: "alta",
   description: "",
@@ -25,54 +26,42 @@ const rule = (overrides: Partial<SignatureDefinition> = {}): SignatureDefinition
   ...overrides,
 });
 
-const value = (key: string, raw: string): PlistValue => ({ path: `Dictionary.${key}`, key, value: raw, type: "string" });
-
-describe("detecção estruturada no navegador", () => {
-  it("não confirma um identificador longo somente porque contém b4", () => {
-    const signature = rule({ indicator: "b4", type: "identifier", expectedKeys: ["ProfileIdentifier"], expectedLengths: [2] });
-    const values = [value("ProfileIdentifier", hashWithB4)];
-    const evidence = detectInContent(source, hashWithB4, values, [signature]);
-    const manual = collectManualReviews(source, values, [signature], evidence);
-    expect(evidence).toHaveLength(0);
-    expect(scoreReport(evidence, manual).result).toBe("manual");
+describe("scanner SystemProfile", () => {
+  it("extrai apenas as chaves diretas do dicionário SystemProfile", () => {
+    const xml = `<?xml version="1.0"?><plist version="1.0"><dict><key>SystemSettings</key><dict><key>com.xtremo.mobile</key><dict/></dict><key>SystemProfileRecords</key><dict><key>com.xtremo.mobile</key><dict><key>event</key><string>set</string></dict><key>3b039be0ec0f497867df7e62b4c24f179bf2d92a58e96626aa15270e94d4bfe6a</key><dict/></dict></dict></plist>`;
+    const parsed = parseFileValues(source, new TextEncoder().encode(xml));
+    expect(parsed.values.map(item => item.value)).toEqual(["com.xtremo.mobile", "3b039be0ec0f497867df7e62b4c24f179bf2d92a58e96626aa15270e94d4bfe6a"]);
+    expect(parsed.values.every(item => item.path.startsWith("SystemProfileRecords"))).toBe(true);
   });
 
-  it("não confirma um identificador longo somente porque contém d4", () => {
-    const signature = rule({ indicator: "d4", type: "identifier", expectedKeys: ["ProfileIdentifier"], expectedLengths: [2] });
-    const values = [value("ProfileIdentifier", hashWithD4)];
-    const evidence = detectInContent(source, hashWithD4, values, [signature]);
-    expect(evidence).toHaveLength(0);
-    expect(scoreReport(evidence, collectManualReviews(source, values, [signature], evidence)).result).toBe("manual");
-  });
-
-  it("retorna SIM somente para correspondência exata na fonte e chave corretas", () => {
-    const values = [value("HTTPProxy", "dash-proxy")];
-    const evidence = detectInContent(source, "HTTPProxy=dash-proxy", values, [rule()]);
+  it("confirma somente um identificador completo no SystemProfile", () => {
+    const values = [systemProfileValue("com.xtremo.mobile")];
+    const evidence = detectInContent(source, "", values, [exactRule()]);
     expect(evidence).toHaveLength(1);
     expect(evidence[0]?.match).toBe("EXATA");
     expect(scoreReport(evidence, []).result).toBe("yes");
   });
 
-  it("não confirma hífen em campo que não é identificador estruturado nem regra Casa de Aposta", () => {
-    const casa = rule({ name: "Casa de Aposta", category: "Casa de Aposta", indicator: "casa-704114-rx7", type: "identifier", expectedKeys: ["ProfileIdentifier"] });
-    const values = [value("Description", "qualquer-texto-com-hifen")];
-    const evidence = detectInContent(source, "qualquer-texto-com-hifen", values, [casa]);
-    expect(evidence).toHaveLength(0);
-    expect(scoreReport(evidence, collectManualReviews(source, values, [casa], evidence)).result).toBe("no");
-  });
-
-  it("retorna SIM para identificador Casa de Aposta completo cadastrado no local esperado", () => {
-    const casa = rule({ name: "Casa de Aposta", category: "Casa de Aposta", indicator: "casa-704114-rx7", type: "identifier", expectedKeys: ["ProfileIdentifier"] });
-    const values = [value("ProfileIdentifier", "casa-704114-rx7")];
-    const evidence = detectInContent(source, "casa-704114-rx7", values, [casa]);
-    expect(evidence[0]?.category).toBe("Casa de Aposta");
-    expect(scoreReport(evidence, []).result).toBe("yes");
-  });
-
-  it("ignora string genérica quando ela aparece em arquivo não cadastrado", () => {
-    const values = [value("HTTPProxy", "dash-proxy")];
-    const evidence = detectInContent("sysdiagnose/Logs/other/random.log", "dash-proxy", values, [rule()]);
+  it("ignora o mesmo identificador se ele estiver fora de SystemProfile", () => {
+    const evidence = detectInContent(source, "", [outsideValue("com.xtremo.mobile")], [exactRule()]);
     expect(evidence).toHaveLength(0);
     expect(scoreReport(evidence, []).result).toBe("no");
+  });
+
+  it("nunca confirma o prefixo curto b4 de um identificador completo", () => {
+    const identifier = "b4d039be0ec0f497867df7e62b4c24f179bf2d92a58e96626aa15270e94d4bfe6a";
+    const prefix = exactRule({ id: "b4", name: "Referência · B4", indicator: "b4", match: "prefix", isWeak: true, severity: "informativo", baseConfidence: "informativo" });
+    const values = [systemProfileValue(identifier)];
+    const evidence = detectInContent(source, "", values, [prefix]);
+    const manual = collectManualReviews(source, values, [prefix], evidence);
+    expect(evidence).toHaveLength(0);
+    expect(manual[0]?.reason).toContain("Prefixo de referência");
+    expect(scoreReport(evidence, manual).result).toBe("manual");
+  });
+
+  it("ignora por completo dados de outro arquivo e outras chaves", () => {
+    const values = [systemProfileValue("com.xtremo.mobile")];
+    expect(detectInContent("sysdiagnose/other.plist", "", values, [exactRule()])).toHaveLength(0);
+    expect(detectInContent(source, "", [{ path: "SystemProfileRecords.com.xtremo.mobile", key: "HTTPProxy", value: "com.xtremo.mobile" }], [exactRule()])).toHaveLength(0);
   });
 });

@@ -37,3 +37,14 @@
 - [x] Atualizar o relatório para os estados SIM, NÃO e VERIFICAR MANUALMENTE, sem score de risco.
 - [x] Cobrir os seis cenários anti-falso-positivo solicitados com testes automatizados.
 - [x] Publicar no GitHub e validar na Netlify a correção de precisão e resultados estruturados.
+- [x] Inspecionar o plist fornecido e preparar uma cópia de teste com proxy estruturado sem alterar o original.
+- [x] Validar a cópia de teste no scanner local e entregar o arquivo resultante ao usuário.
+- [x] Restringir a análise às entradas estruturadas do bloco SystemProfile em MCSettingsEvents.plist.
+- [x] Ignorar todos os demais pacotes, chaves e valores do Sysdiagnose como fonte de evidência.
+- [x] Ajustar as assinaturas para validar somente identificadores completos presentes no SystemProfile.
+- [x] Criar testes de isolamento do SystemProfile e validar no navegador.
+- [x] Extrair exclusivamente os identificadores do dicionário SystemProfile em MCSettingsEvents.plist.
+- [x] Substituir a tabela atual pela lista RX7 fornecida, impedindo confirmação por códigos curtos isolados.
+- [x] Remover Histórico local e Assinaturas locais da interface pública.
+- [x] Simplificar a tela inicial para envio e redesenhar o relatório em estilo escuro profissional, com identidade RX7.
+- [ ] Publicar a nova versão SystemProfile-only no GitHub e Netlify.
