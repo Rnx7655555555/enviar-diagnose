@@ -66,3 +66,8 @@
 - [x] Testar o relatório categorizado no navegador e publicar a atualização no GitHub e Netlify.
 - [x] Completar a tabela RX7 com todos os identificadores originais fornecidos, mantendo códigos curtos apenas para revisão manual.
 - [x] Validar a tabela completa contra os limites dos blocos SystemProfile* e SystemClientRestrictions e publicar no GitHub/Netlify.
+- [x] Mapear evidências técnicas de Jailbreak em SYSdiagnose sem reutilizar as fontes de proxy.
+- [x] Implementar uma análise conservadora de Jailbreak, com confirmação somente por evidência técnica forte e independente.
+- [x] Integrar o estado de Jailbreak ao relatório público sem alterar a detecção de proxy.
+- [x] Cobrir Jailbreak com testes de sinais confirmados, sinais isolados e dados irrelevantes.
+- [ ] Validar a análise de Jailbreak com fixtures sintéticas e publicar no GitHub/Netlify.

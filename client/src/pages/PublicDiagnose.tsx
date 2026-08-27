@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { startLocalScan } from "@/scanner/client";
 import { detectArchiveFormat, scanLimits } from "@/scanner/security";
-import type { Evidence, ManualReview, ScanReport, ScanResult, SignatureDefinition, WorkerEvent, WorkerProgress } from "@/scanner/types";
+import type { Evidence, JailbreakFinding, JailbreakReport, JailbreakResult, ManualReview, ScanReport, ScanResult, SignatureDefinition, WorkerEvent, WorkerProgress } from "@/scanner/types";
 
 type ProgressState = WorkerProgress & { startedAt: number };
 type ResultMeta = { label: string; description: (exact: number, review: number) => string; tone: string; badge: string };
@@ -16,6 +16,12 @@ const resultMeta: Record<ScanResult, ResultMeta> = {
   yes: { label: "WO CONFIRMADO", description: (exact, review) => `${exact} correspondência${exact === 1 ? "" : "s"} exata${exact === 1 ? "" : "s"}${review ? ` e ${review} item(ns) para verificar` : ""}.`, tone: "border-cyan-300/25 bg-cyan-300/[.07]", badge: "bg-cyan-300/15 text-cyan-100 ring-1 ring-cyan-300/25" },
   no: { label: "LIMPO", description: () => "Nenhum identificador da tabela RX7 foi encontrado nos blocos permitidos.", tone: "border-emerald-300/25 bg-emerald-300/[.07]", badge: "bg-emerald-300/15 text-emerald-100 ring-1 ring-emerald-300/25" },
   manual: { label: "VERIFICAR LOG", description: (_exact, review) => `${review} identificador${review === 1 ? "" : "es"} completo${review === 1 ? "" : "s"} sem correspondência exata.`, tone: "border-amber-300/30 bg-amber-300/[.07]", badge: "bg-amber-300/15 text-amber-100 ring-1 ring-amber-300/30" },
+};
+
+const jailbreakMeta: Record<JailbreakResult, ResultMeta> = {
+  yes: { label: "JAILBREAK W.O.", description: (_exact, review) => `${review} evidência${review === 1 ? "" : "s"} técnica${review === 1 ? "" : "s"} em famílias e fontes independentes.`, tone: "border-cyan-300/25 bg-cyan-300/[.07]", badge: "bg-cyan-300/15 text-cyan-100 ring-1 ring-cyan-300/25" },
+  no: { label: "JAILBREAK NÃO IDENTIFICADO", description: () => "Nenhuma combinação técnica suficiente foi achada nas fontes passivas avaliadas.", tone: "border-emerald-300/25 bg-emerald-300/[.07]", badge: "bg-emerald-300/15 text-emerald-100 ring-1 ring-emerald-300/25" },
+  manual: { label: "JAILBREAK: VERIFICAR", description: (_exact, review) => `${review} sinal${review === 1 ? "" : "is"} técnico${review === 1 ? "" : "s"} isolado${review === 1 ? "" : "s"}; sem confirmação automática.`, tone: "border-amber-300/30 bg-amber-300/[.07]", badge: "bg-amber-300/15 text-amber-100 ring-1 ring-amber-300/30" },
 };
 
 function validSignatures(value: unknown): value is SignatureDefinition[] {
@@ -61,12 +67,21 @@ function FindingCategory({ group }: { group: FindingGroup }) {
   return <Collapsible><section className={`overflow-hidden rounded-xl border bg-[#0e141c] ${tint}`}><CollapsibleTrigger asChild><button className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"><span className="text-xs font-semibold tracking-[.15em] text-slate-100">{group.name}</span><span className="flex items-center gap-3"><span className={`min-w-7 rounded-md px-2 py-1 text-center text-[10px] font-bold ${badge}`}>{total}</span><ChevronDown className="h-4 w-4 text-slate-500" /></span></button></CollapsibleTrigger><CollapsibleContent><div className="space-y-3 border-t border-white/[.07] p-4">{group.evidence.map(item => <ExactFinding key={item.signatureId} item={item} />)}{group.reviews.map((item, index) => <ManualFinding key={`${item.identifier}-${index}`} item={item} />)}</div></CollapsibleContent></section></Collapsible>;
 }
 
+function JailbreakFindingCard({ item }: { item: JailbreakFinding }) {
+  return <article className="rounded-[1.25rem] border border-cyan-300/20 bg-[#10161e] p-5 shadow-[0_14px_45px_rgba(0,0,0,.18)]"><div className="border-l-2 border-cyan-300 pl-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-semibold tracking-wide text-slate-100">Evidência técnica de Jailbreak</h3><p className="mt-1 text-xs text-slate-500">Sinal passivo encontrado em fonte específica do SYSdiagnose.</p></div><span className="rounded-md border border-cyan-300/30 bg-cyan-300/[.08] px-2 py-1 text-[10px] font-bold tracking-[.14em] text-cyan-100">W.O.</span></div><Collapsible><CollapsibleTrigger asChild><button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/[.06] px-4 py-3 text-[11px] font-semibold tracking-[.12em] text-cyan-100 transition-colors hover:bg-cyan-300/[.12]"><Search className="h-3.5 w-3.5" />VER LOG DO RESULTADO</button></CollapsibleTrigger><CollapsibleContent><div className="mt-4 grid gap-3"><Info label="SINAL TÉCNICO" value={item.label} /><div className="grid gap-3 sm:grid-cols-2"><Info label="FAMÍLIA" value={item.family} /><Info label="FONTE" value={item.sourceKind} /></div><Info label="ARQUIVO" value={item.sourcePath} mono /></div></CollapsibleContent></Collapsible></div></article>;
+}
+
+function JailbreakSummary({ jailbreak }: { jailbreak: JailbreakReport }) {
+  const meta = jailbreakMeta[jailbreak.status];
+  return <section className={`mt-5 rounded-[1.5rem] border p-6 text-center sm:p-8 ${meta.tone}`}><p className="text-[10px] font-semibold tracking-[.22em] text-slate-400">ANÁLISE DE JAILBREAK</p><div className="mt-5 flex justify-center"><span className={`rounded-full px-4 py-2 text-xs font-bold tracking-[.14em] ${meta.badge}`}>{meta.label}</span></div><p className="mx-auto mt-5 max-w-md text-sm leading-6 text-slate-300">{jailbreak.summary}</p><p className="mt-3 text-xs text-slate-500">{jailbreak.sourcesReviewed} fonte{jailbreak.sourcesReviewed === 1 ? "" : "s"} técnica{jailbreak.sourcesReviewed === 1 ? "" : "s"} avaliada{jailbreak.sourcesReviewed === 1 ? "" : "s"} localmente.</p>{jailbreak.findings.length > 0 && <Collapsible><CollapsibleTrigger asChild><button className="mt-5 inline-flex items-center gap-2 text-[11px] font-semibold tracking-[.12em] text-slate-200 hover:text-cyan-100"><ChevronDown className="h-3.5 w-3.5" />EVIDÊNCIAS TÉCNICAS</button></CollapsibleTrigger><CollapsibleContent><div className="mt-5 space-y-3 text-left">{jailbreak.findings.map(item => <JailbreakFindingCard key={`${item.id}-${item.sourcePath}`} item={item} />)}</div></CollapsibleContent></Collapsible>}</section>;
+}
+
 function ResultSummary({ report }: { report: ScanReport }) {
   const meta = resultMeta[report.result];
   const exact = report.evidence.length;
   const review = report.manualReviews.length;
   const groups = groupsFrom(report);
-  return <><section className={`mt-7 rounded-[1.5rem] border p-6 text-center sm:p-8 ${meta.tone}`}><p className="text-[10px] font-semibold tracking-[.22em] text-slate-400">O QUE FOI ENCONTRADO</p><div className="mt-5 flex justify-center"><span className={`rounded-full px-4 py-2 text-xs font-bold tracking-[.14em] ${meta.badge}`}>{meta.label}</span></div><p className="mx-auto mt-5 max-w-md text-sm leading-6 text-slate-300">{meta.description(exact, review)}</p></section>{groups.length > 0 && <section className="mt-5 space-y-3"><p className="px-1 text-[10px] font-semibold tracking-[.18em] text-slate-500">CATEGORIAS ENCONTRADAS</p>{groups.map(group => <FindingCategory key={group.name} group={group} />)}</section>}</>;
+  return <><section className={`mt-7 rounded-[1.5rem] border p-6 text-center sm:p-8 ${meta.tone}`}><p className="text-[10px] font-semibold tracking-[.22em] text-slate-400">O QUE FOI ENCONTRADO</p><div className="mt-5 flex justify-center"><span className={`rounded-full px-4 py-2 text-xs font-bold tracking-[.14em] ${meta.badge}`}>{meta.label}</span></div><p className="mx-auto mt-5 max-w-md text-sm leading-6 text-slate-300">{meta.description(exact, review)}</p></section><JailbreakSummary jailbreak={report.jailbreak} />{groups.length > 0 && <section className="mt-5 space-y-3"><p className="px-1 text-[10px] font-semibold tracking-[.18em] text-slate-500">CATEGORIAS ENCONTRADAS</p>{groups.map(group => <FindingCategory key={group.name} group={group} />)}</section>}</>;
 }
 
 export default function PublicDiagnose() {

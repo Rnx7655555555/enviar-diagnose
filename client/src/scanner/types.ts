@@ -55,6 +55,24 @@ export type ManualReview = {
 
 export type ScanResult = "no" | "yes" | "manual";
 
+export type JailbreakResult = "no" | "yes" | "manual";
+
+export type JailbreakFinding = {
+  id: string;
+  family: "gerenciador" | "framework" | "sistema" | "ferramenta";
+  sourceKind: "processos" | "montagens" | "inicializacao" | "instalacao";
+  sourcePath: string;
+  label: string;
+};
+
+export type JailbreakReport = {
+  status: JailbreakResult;
+  findings: JailbreakFinding[];
+  sourcesReviewed: number;
+  limitations: string[];
+  summary: string;
+};
+
 export type ScanReport = {
   id: string;
   fileName: string;
@@ -67,6 +85,7 @@ export type ScanReport = {
   relevantFileCount: number;
   evidence: Evidence[];
   manualReviews: ManualReview[];
+  jailbreak: JailbreakReport;
   recommendations: string[];
   limitations: string[];
   tree: ArchiveNode[];

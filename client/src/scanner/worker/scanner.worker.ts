@@ -2,9 +2,10 @@
 import { BlobReader, Uint8ArrayWriter, ZipReader } from "@zip.js/zip.js";
 import { Gunzip } from "fflate";
 import { collectManualReviews, correlateEvidence, detectInContent, isConfiguredSourcePath, scoreReport } from "../detector";
+import { evaluateJailbreak, findJailbreakSignals, isJailbreakSourcePath } from "../jailbreak";
 import { parseFileValues } from "../parsers";
 import { buildTree, detectArchiveFormat, safeArchivePath, scanLimits } from "../security";
-import type { Evidence, ManualReview, ScanReport, SignatureDefinition, WorkerEvent } from "../types";
+import type { Evidence, JailbreakFinding, ManualReview, ScanReport, SignatureDefinition, WorkerEvent } from "../types";
 
 const ctx: DedicatedWorkerGlobalScope = self as unknown as DedicatedWorkerGlobalScope;
 const decoder = new TextDecoder("utf-8", { fatal: false });
@@ -136,19 +137,33 @@ async function scan(file: File, signatures: SignatureDefinition[]) {
   let relevant = 0;
   const evidence: Evidence[] = [];
   const manualReviews: ManualReview[] = [];
+  const jailbreakFindings: JailbreakFinding[] = [];
   const limitations: string[] = [];
-  const shouldInspect: SourceMatcher = path => isConfiguredSourcePath(path, signatures);
+  const jailbreakLimitations: string[] = [];
+  let jailbreakSourcesReviewed = 0;
+  const shouldInspect: SourceMatcher = path => isConfiguredSourcePath(path, signatures) || isJailbreakSourcePath(path);
   const visit: FileVisitor = async (path, data) => {
     if (cancelled) return;
     processed += 1;
     relevant += 1;
     emit({ step: 4, stage: `Analisando ${path.split("/").at(-1) ?? "arquivo relevante"}`, processedFileCount: processed, relevantFileCount: relevant, bytesRead: 0, totalBytes: file.size });
-    if (!data.length) { limitations.push(`${path}: o conteúdo excede o limite local de leitura segura e foi ignorado.`); return; }
-    const parsed = parseFileValues(path, data);
-    limitations.push(...parsed.limitations);
-    const found = detectInContent(path, parsed.text, parsed.values, signatures);
-    evidence.push(...found);
-    manualReviews.push(...collectManualReviews(path, parsed.values, signatures, found));
+    if (!data.length) {
+      const detail = `${path}: o conteúdo excede o limite local de leitura segura e foi ignorado.`;
+      if (isConfiguredSourcePath(path, signatures)) limitations.push(detail);
+      if (isJailbreakSourcePath(path)) jailbreakLimitations.push(detail);
+      return;
+    }
+    if (isConfiguredSourcePath(path, signatures)) {
+      const parsed = parseFileValues(path, data);
+      limitations.push(...parsed.limitations);
+      const found = detectInContent(path, parsed.text, parsed.values, signatures);
+      evidence.push(...found);
+      manualReviews.push(...collectManualReviews(path, parsed.values, signatures, found));
+    }
+    if (isJailbreakSourcePath(path)) {
+      jailbreakSourcesReviewed += 1;
+      jailbreakFindings.push(...findJailbreakSignals(path, decoder.decode(data)));
+    }
   };
   emit({ step: 1, stage: "Detectando formato e validando cabeçalho", progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size });
   emit({ step: 2, stage: `Extraindo ${format === "zip" ? "ZIP" : "TAR.GZ"} localmente no dispositivo`, progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size });
@@ -159,7 +174,8 @@ async function scan(file: File, signatures: SignatureDefinition[]) {
   correlateEvidence(evidence);
   const uniqueManualReviews = Array.from(new Map(manualReviews.map(item => [`${item.sourcePath}:${item.plistPath}:${item.identifier}`, item])).values());
   const outcome = scoreReport(evidence, uniqueManualReviews);
-  const report: ScanReport = { id: crypto.randomUUID(), fileName: file.name, fileSize: file.size, fileFormat: format, durationMs: Date.now() - startedAt, createdAt: Date.now(), ...outcome, processedFileCount: paths.filter(item => item.path && !item.path.endsWith("/")).length, relevantFileCount: relevant, evidence, manualReviews: uniqueManualReviews, recommendations: recommendations(evidence, uniqueManualReviews), limitations: Array.from(new Set(limitations)), tree: buildTree(paths) };
+  const jailbreak = evaluateJailbreak(jailbreakFindings, jailbreakSourcesReviewed, Array.from(new Set(jailbreakLimitations)));
+  const report: ScanReport = { id: crypto.randomUUID(), fileName: file.name, fileSize: file.size, fileFormat: format, durationMs: Date.now() - startedAt, createdAt: Date.now(), ...outcome, processedFileCount: paths.filter(item => item.path && !item.path.endsWith("/")).length, relevantFileCount: relevant, evidence, manualReviews: uniqueManualReviews, jailbreak, recommendations: recommendations(evidence, uniqueManualReviews), limitations: Array.from(new Set(limitations)), tree: buildTree(paths) };
   ctx.postMessage({ type: "complete", report } satisfies WorkerEvent);
 }
 
