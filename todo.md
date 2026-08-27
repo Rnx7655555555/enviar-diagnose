@@ -71,3 +71,8 @@
 - [x] Integrar o estado de Jailbreak ao relatório público sem alterar a detecção de proxy.
 - [x] Cobrir Jailbreak com testes de sinais confirmados, sinais isolados e dados irrelevantes.
 - [x] Validar a análise de Jailbreak com fixtures sintéticas e publicar no GitHub/Netlify.
+- [x] Inventariar o arquivo de referência de painel externo sem alterar o original e selecionar somente fontes técnicas justificáveis.
+- [x] Criar uma triagem separada de painel externo que exija sinais técnicos independentes para confirmação.
+- [x] Atualizar o progresso local com mensagens específicas de preparação, inspeção e conferência, sem texto genérico de leitura.
+- [x] Testar os cenários de painel externo, os isolamentos de proxy/Jailbreak e a interface de carregamento.
+- [ ] Publicar as melhorias no GitHub/Netlify e validar com os arquivos autorizados.

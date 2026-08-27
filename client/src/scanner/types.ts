@@ -73,6 +73,25 @@ export type JailbreakReport = {
   summary: string;
 };
 
+export type ExternalPanelResult = "no" | "yes" | "manual";
+
+export type ExternalPanelFinding = {
+  id: string;
+  family: "instalador" | "painel" | "distribuicao";
+  sourceKind: "instalacao" | "processos" | "inicializacao";
+  sourcePath: string;
+  indicator: string;
+  label: string;
+};
+
+export type ExternalPanelReport = {
+  status: ExternalPanelResult;
+  findings: ExternalPanelFinding[];
+  sourcesReviewed: number;
+  limitations: string[];
+  summary: string;
+};
+
 export type ScanReport = {
   id: string;
   fileName: string;
@@ -86,6 +105,7 @@ export type ScanReport = {
   evidence: Evidence[];
   manualReviews: ManualReview[];
   jailbreak: JailbreakReport;
+  externalPanel: ExternalPanelReport;
   recommendations: string[];
   limitations: string[];
   tree: ArchiveNode[];

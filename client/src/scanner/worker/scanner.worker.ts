@@ -2,10 +2,11 @@
 import { BlobReader, Uint8ArrayWriter, ZipReader } from "@zip.js/zip.js";
 import { Gunzip } from "fflate";
 import { collectManualReviews, correlateEvidence, detectInContent, isConfiguredSourcePath, scoreReport } from "../detector";
+import { evaluateExternalPanel, findExternalPanelSignals, isExternalPanelSourcePath } from "../externalPanel";
 import { evaluateJailbreak, findJailbreakSignals, isJailbreakSourcePath } from "../jailbreak";
 import { parseFileValues } from "../parsers";
 import { buildTree, detectArchiveFormat, safeArchivePath, scanLimits } from "../security";
-import type { Evidence, JailbreakFinding, ManualReview, ScanReport, SignatureDefinition, WorkerEvent } from "../types";
+import type { Evidence, ExternalPanelFinding, JailbreakFinding, ManualReview, ScanReport, SignatureDefinition, WorkerEvent } from "../types";
 
 const ctx: DedicatedWorkerGlobalScope = self as unknown as DedicatedWorkerGlobalScope;
 const decoder = new TextDecoder("utf-8", { fatal: false });
@@ -137,19 +138,23 @@ async function scan(file: File, signatures: SignatureDefinition[]) {
   let relevant = 0;
   const evidence: Evidence[] = [];
   const manualReviews: ManualReview[] = [];
+  const externalPanelFindings: ExternalPanelFinding[] = [];
   const jailbreakFindings: JailbreakFinding[] = [];
   const limitations: string[] = [];
+  const externalPanelLimitations: string[] = [];
   const jailbreakLimitations: string[] = [];
+  let externalPanelSourcesReviewed = 0;
   let jailbreakSourcesReviewed = 0;
-  const shouldInspect: SourceMatcher = path => isConfiguredSourcePath(path, signatures) || isJailbreakSourcePath(path);
+  const shouldInspect: SourceMatcher = path => isConfiguredSourcePath(path, signatures) || isJailbreakSourcePath(path) || isExternalPanelSourcePath(path);
   const visit: FileVisitor = async (path, data) => {
     if (cancelled) return;
     processed += 1;
     relevant += 1;
-    emit({ step: 4, stage: `Analisando ${path.split("/").at(-1) ?? "arquivo relevante"}`, processedFileCount: processed, relevantFileCount: relevant, bytesRead: 0, totalBytes: file.size });
+    emit({ step: 4, stage: `Conferindo ${path.split("/").at(-1) ?? "relatório técnico"}`, processedFileCount: processed, relevantFileCount: relevant, bytesRead: 0, totalBytes: file.size });
     if (!data.length) {
       const detail = `${path}: o conteúdo excede o limite local de leitura segura e foi ignorado.`;
       if (isConfiguredSourcePath(path, signatures)) limitations.push(detail);
+      if (isExternalPanelSourcePath(path)) externalPanelLimitations.push(detail);
       if (isJailbreakSourcePath(path)) jailbreakLimitations.push(detail);
       return;
     }
@@ -164,18 +169,23 @@ async function scan(file: File, signatures: SignatureDefinition[]) {
       jailbreakSourcesReviewed += 1;
       jailbreakFindings.push(...findJailbreakSignals(path, decoder.decode(data)));
     }
+    if (isExternalPanelSourcePath(path)) {
+      externalPanelSourcesReviewed += 1;
+      externalPanelFindings.push(...findExternalPanelSignals(path, decoder.decode(data)));
+    }
   };
-  emit({ step: 1, stage: "Detectando formato e validando cabeçalho", progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size });
-  emit({ step: 2, stage: `Extraindo ${format === "zip" ? "ZIP" : "TAR.GZ"} localmente no dispositivo`, progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size });
-  const update = (bytesRead: number) => emit({ step: 3, stage: "Localizando arquivos relevantes", progress: Math.round((bytesRead / file.size) * 100), processedFileCount: processed, relevantFileCount: relevant, bytesRead, totalBytes: file.size });
+  emit({ step: 1, stage: "Preparando a análise local", progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size });
+  emit({ step: 2, stage: `Descompactando ${format === "zip" ? "ZIP" : "TAR.GZ"} no navegador`, progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size });
+  const update = (bytesRead: number) => emit({ step: 3, stage: "Mapeando relatórios técnicos", progress: Math.round((bytesRead / file.size) * 100), processedFileCount: processed, relevantFileCount: relevant, bytesRead, totalBytes: file.size });
   const paths = format === "tar.gz" ? await inspectTarGz(file, visit, shouldInspect, update) : await inspectZip(file, visit, shouldInspect, update);
   if (cancelled) return;
-  emit({ step: 5, stage: "Correlacionando evidências encontradas", processedFileCount: processed, relevantFileCount: relevant, bytesRead: file.size, totalBytes: file.size });
+  emit({ step: 5, stage: "Organizando o resultado técnico", processedFileCount: processed, relevantFileCount: relevant, bytesRead: file.size, totalBytes: file.size });
   correlateEvidence(evidence);
   const uniqueManualReviews = Array.from(new Map(manualReviews.map(item => [`${item.sourcePath}:${item.plistPath}:${item.identifier}`, item])).values());
   const outcome = scoreReport(evidence, uniqueManualReviews);
+  const externalPanel = evaluateExternalPanel(externalPanelFindings, externalPanelSourcesReviewed, Array.from(new Set(externalPanelLimitations)));
   const jailbreak = evaluateJailbreak(jailbreakFindings, jailbreakSourcesReviewed, Array.from(new Set(jailbreakLimitations)));
-  const report: ScanReport = { id: crypto.randomUUID(), fileName: file.name, fileSize: file.size, fileFormat: format, durationMs: Date.now() - startedAt, createdAt: Date.now(), ...outcome, processedFileCount: paths.filter(item => item.path && !item.path.endsWith("/")).length, relevantFileCount: relevant, evidence, manualReviews: uniqueManualReviews, jailbreak, recommendations: recommendations(evidence, uniqueManualReviews), limitations: Array.from(new Set(limitations)), tree: buildTree(paths) };
+  const report: ScanReport = { id: crypto.randomUUID(), fileName: file.name, fileSize: file.size, fileFormat: format, durationMs: Date.now() - startedAt, createdAt: Date.now(), ...outcome, processedFileCount: paths.filter(item => item.path && !item.path.endsWith("/")).length, relevantFileCount: relevant, evidence, manualReviews: uniqueManualReviews, jailbreak, externalPanel, recommendations: recommendations(evidence, uniqueManualReviews), limitations: Array.from(new Set(limitations)), tree: buildTree(paths) };
   ctx.postMessage({ type: "complete", report } satisfies WorkerEvent);
 }
 
