@@ -46,6 +46,14 @@ describe("triagem de painel externo", () => {
     expect(evaluateExternalPanel(findings, 1).status).toBe("manual");
   });
 
+  it("marca XIT e external apenas quando são unidades completas de identificador estruturado", () => {
+    const source = "sysdiagnose/ps.txt";
+    const findings = findExternalPanelSignals(source, "bundle identifier = com.example.xit.external.panel");
+    expect(findings[0]?.indicator).toBe("com.example.xit.external.panel");
+    expect(evaluateExternalPanel(findings, 1).status).toBe("manual");
+    expect(findExternalPanelSignals(source, "nota xitexternal e externalidade sem bundle")).toEqual([]);
+  });
+
   it("ignora external, esign e xit quando aparecem apenas em texto, hash ou caminho sem estrutura", () => {
     const source = "sysdiagnose/logs/MobileInstallation/mobile_installation.log.1";
     const text = "nota: external esign xit\nhash=aff0e5ign\ncaminho=/tmp/external/xit";

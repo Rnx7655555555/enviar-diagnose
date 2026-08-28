@@ -62,7 +62,7 @@ function bundleIdentifiers(text: string) {
 
 function looksLikePanelBundle(identifier: string) {
   const label = normalized(identifier);
-  return /(?:^|[.-])(?:cheat|aimbot|modmenu|mod-menu|menuhack|freefiremod|inject)(?:[.-]|$)/i.test(label);
+  return /(?:^|[.-])(?:cheat|aimbot|modmenu|mod-menu|menuhack|freefiremod|inject|external|xit)(?:[.-]|$)/i.test(label);
 }
 
 function installationContexts(text: string, identifier: string) {
