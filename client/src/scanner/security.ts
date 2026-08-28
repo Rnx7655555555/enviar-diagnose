@@ -2,7 +2,7 @@ export const scanLimits = {
   maxTreeNodes: 2_000,
 } as const;
 
-export type ArchiveFormat = "tar.gz" | "zip";
+import type { ArchiveFormat } from "./types";
 
 export function safeArchivePath(input: string) {
   const normalized = input.replace(/\\/g, "/").replace(/^\/+/, "").replace(/^(\.\/)+/, "");
@@ -19,12 +19,16 @@ export function isRelevantSysdiagnosePath(input: string) {
 
 export async function detectArchiveFormat(file: File): Promise<ArchiveFormat> {
   if (file.size < 4) throw new Error("O arquivo está vazio ou incompleto.");
-  const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  const header = new Uint8Array(await file.slice(0, Math.min(file.size, 512)).arrayBuffer());
   const isGzip = header[0] === 0x1f && header[1] === 0x8b;
   const isZip = header[0] === 0x50 && header[1] === 0x4b && [0x03, 0x05, 0x07].includes(header[2] ?? -1);
+  const storedChecksum = Number.parseInt(new TextDecoder().decode(header.slice(148, 156)).replace(/\0.*$/, "").trim(), 8);
+  const calculatedChecksum = header.length === 512 ? header.reduce((sum, byte, index) => sum + (index >= 148 && index < 156 ? 0x20 : byte), 0) : Number.NaN;
+  const isTar = Number.isFinite(storedChecksum) && storedChecksum === calculatedChecksum;
   if (isGzip) return "tar.gz";
   if (isZip) return "zip";
-  throw new Error("O conteúdo não corresponde a um arquivo GZIP ou ZIP válido.");
+  if (isTar) return "tar";
+  throw new Error("O conteúdo não corresponde a um arquivo GZIP, TAR ou ZIP válido.");
 }
 
 export function assertFileAccepted(file: File) {

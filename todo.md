@@ -30,7 +30,7 @@
 - [x] Testar o novo fluxo e atualizar o repositório GitHub.
 - [x] Validar no navegador uma fixture TAR.GZ de integração, sem alegar validação com SYSdiagnose real.
 - [x] Normalizar a árvore de caminhos TAR relativos e incluir seleção por arrastar e soltar.
-- [ ] Validar com um SYSdiagnose real autorizado antes de qualquer uso operacional.
+- [x] Validar com um SYSdiagnose real autorizado antes de qualquer uso operacional.
 - [x] Restringir a análise de identificadores às fontes explicitamente permitidas pelas assinaturas.
 - [x] Substituir matching por substring curta por comparação exata de valores estruturados e identificadores completos.
 - [x] Registrar ocorrências ambíguas como VERIFICAR MANUALMENTE, sem classificá-las como detecção.
@@ -94,7 +94,9 @@
 - [x] Garantir cancelamento seguro, limpeza de Worker e mensagens técnicas claras para capacidade insuficiente.
 - [x] Ajustar a experiência para Safari/iPhone sem depender de APIs experimentais.
 - [ ] Validar regressões de proxy/external e cenários de arquivo grande, depois publicar no GitHub Pages.
-- [ ] Mapear no arquivo autorizado evidências estruturadas de ESign, sideload e distribuição não-App-Store.
-- [ ] Adicionar a detecção conservadora de ESign e instalação externa, sem usar nome de arquivo, texto genérico ou proxy como confirmação.
-- [ ] Testar ESign, instalações oficiais e isolamento da análise de proxy.
-- [ ] Publicar a ampliação da triagem no GitHub Pages e validar a versão atualizada.
+- [x] Mapear no arquivo autorizado evidências estruturadas de ESign, sideload e distribuição não-App-Store.
+- [x] Adicionar a detecção conservadora de ESign e instalação externa, sem usar nome de arquivo, texto genérico ou proxy como confirmação.
+- [x] Testar ESign, instalações oficiais e isolamento da análise de proxy.
+- [x] Publicar a ampliação da triagem no GitHub Pages e validar a versão atualizada.
+- [x] Corrigir e testar a contagem de entradas TAR na cobertura técnica, sem duplicar métricas no relatório.
+- [ ] Publicar e validar a correção da cobertura TAR e o suporte a TAR bruto no GitHub Pages.

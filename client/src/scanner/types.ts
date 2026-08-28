@@ -123,11 +123,13 @@ export type ScanCapacity = {
   fallback: boolean;
 };
 
+export type ArchiveFormat = "tar.gz" | "tar" | "zip";
+
 export type ScanReport = {
   id: string;
   fileName: string;
   fileSize: number;
-  fileFormat: "tar.gz" | "zip";
+  fileFormat: ArchiveFormat;
   durationMs: number;
   createdAt: number;
   result: ScanResult;

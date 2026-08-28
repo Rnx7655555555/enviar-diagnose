@@ -7,6 +7,7 @@ import { assessExternalPanelCoverage, evaluateExternalPanel, findExternalPanelSi
 import { evaluateJailbreak, findJailbreakSignals, isJailbreakSourcePath } from "../jailbreak";
 import { parseFileValues } from "../parsers";
 import { buildTree, detectArchiveFormat, safeArchivePath, scanLimits } from "../security";
+import { TarWalker } from "../tar";
 import type { Evidence, ExternalPanelFinding, JailbreakFinding, ManualReview, ScanReport, SignatureDefinition, WorkerEvent } from "../types";
 
 const ctx: DedicatedWorkerGlobalScope = self as unknown as DedicatedWorkerGlobalScope;
@@ -18,71 +19,10 @@ type FileVisitor = (path: string, data: Uint8Array, truncated: boolean) => Promi
 type SourceMatcher = (path: string) => boolean;
 
 function emit(payload: Progress) { ctx.postMessage({ type: "progress", ...payload } satisfies WorkerEvent); }
-function concat(first: Uint8Array, second: Uint8Array) { const joined = new Uint8Array(first.length + second.length); joined.set(first); joined.set(second, first.length); return joined; }
-function tarText(bytes: Uint8Array) { return decoder.decode(bytes).replace(/\0.*$/, "").trim(); }
-function isEmptyTarBlock(block: Uint8Array) { return block.every(value => value === 0); }
-
-class TarWalker {
-  private buffer = new Uint8Array();
-  private current: { path: string; size: number; remaining: number; padding: number; capture: Uint8Array[]; captureSize: number } | null = null;
-  private entryCount = 0;
-  private expanded = 0;
-  constructor(private readonly paths: Array<{ path: string; size: number }>, private readonly onFile: FileVisitor, private readonly shouldInspect: SourceMatcher, private readonly plan: ScanPlan) {}
-
-  async push(input: Uint8Array) {
-    this.buffer = concat(this.buffer, input);
-    while (!cancelled) {
-      if (!this.current) {
-        if (this.buffer.length < 512) return;
-        const header = this.buffer.slice(0, 512);
-        this.buffer = this.buffer.slice(512);
-        if (isEmptyTarBlock(header)) return;
-        this.entryCount += 1;
-        if (this.entryCount > this.plan.maxEntries) throw new Error("O arquivo possui uma estrutura com entradas demais para ser analisada com segurança neste dispositivo.");
-        const name = tarText(header.slice(0, 100));
-        const prefix = tarText(header.slice(345, 500));
-        const rawPath = prefix ? `${prefix}/${name}` : name;
-        const path = safeArchivePath(rawPath);
-        const size = Number.parseInt(tarText(header.slice(124, 136)) || "0", 8);
-        const fileType = String.fromCharCode(header[156] || 0);
-        const isRelativeRootDirectory = fileType === "5" && /^(?:\.\/)*\.?\/?$/.test(rawPath);
-        if (isRelativeRootDirectory) continue;
-        if (!path || !Number.isFinite(size) || size < 0) throw new Error("O arquivo contém uma entrada TAR inválida ou insegura.");
-        if (fileType === "5") { this.paths.push({ path, size: 0 }); continue; }
-        this.expanded += size;
-        if (this.expanded > this.plan.maxExpandedBytes) throw new Error("A expansão do arquivo excedeu o orçamento estrutural seguro deste dispositivo. Tente fechar outros apps ou usar um aparelho com mais recursos.");
-        this.paths.push({ path, size });
-        this.current = { path, size, remaining: size, padding: (512 - (size % 512)) % 512, capture: [], captureSize: 0 };
-      }
-      const entry = this.current;
-      if (entry.remaining > 0) {
-        if (!this.buffer.length) return;
-        const count = Math.min(entry.remaining, this.buffer.length);
-        const part = this.buffer.slice(0, count);
-        this.buffer = this.buffer.slice(count);
-        entry.remaining -= count;
-        if (this.shouldInspect(entry.path) && entry.captureSize < this.plan.maxRelevantFileBytes) {
-          const remainingBudget = this.plan.maxRelevantFileBytes - entry.captureSize;
-          entry.capture.push(part.slice(0, remainingBudget));
-          entry.captureSize += Math.min(part.length, remainingBudget);
-        }
-        if (entry.remaining > 0) return;
-      }
-      if (entry.padding > 0) {
-        const count = Math.min(entry.padding, this.buffer.length);
-        this.buffer = this.buffer.slice(count);
-        entry.padding -= count;
-        if (entry.padding > 0) return;
-      }
-      this.current = null;
-      if (this.shouldInspect(entry.path)) await this.onFile(entry.path, entry.capture.length ? entry.capture.reduce(concat, new Uint8Array()) : new Uint8Array(), entry.captureSize < entry.size);
-    }
-  }
-}
 
 async function inspectTarGz(file: File, visit: FileVisitor, shouldInspect: SourceMatcher, update: (read: number) => void, plan: ScanPlan) {
   const paths: Array<{ path: string; size: number }> = [];
-  const walker = new TarWalker(paths, visit, shouldInspect, plan);
+  const walker = new TarWalker(paths, visit, shouldInspect, plan, () => cancelled);
   let pending = Promise.resolve();
   const gunzip = new Gunzip((data) => { pending = pending.then(() => walker.push(data)); });
   for (let offset = 0; offset < file.size; offset += plan.chunkBytes) {
@@ -93,6 +33,19 @@ async function inspectTarGz(file: File, visit: FileVisitor, shouldInspect: Sourc
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   }
   await pending;
+  return paths;
+}
+
+async function inspectTar(file: File, visit: FileVisitor, shouldInspect: SourceMatcher, update: (read: number) => void, plan: ScanPlan) {
+  const paths: Array<{ path: string; size: number }> = [];
+  const walker = new TarWalker(paths, visit, shouldInspect, plan, () => cancelled);
+  for (let offset = 0; offset < file.size; offset += plan.chunkBytes) {
+    if (cancelled) return paths;
+    const chunk = new Uint8Array(await file.slice(offset, Math.min(file.size, offset + plan.chunkBytes)).arrayBuffer());
+    await walker.push(chunk);
+    update(Math.min(file.size, offset + chunk.length));
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  }
   return paths;
 }
 
@@ -197,9 +150,9 @@ async function scan(file: File, signatures: SignatureDefinition[]) {
     }
   };
   emitProgress({ step: 1, stage: "Preparando a análise local", progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size }, true);
-  emitProgress({ step: 2, stage: `Descompactando ${format === "zip" ? "ZIP" : "TAR.GZ"} no navegador`, progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size }, true);
+  emitProgress({ step: 2, stage: `${format === "zip" ? "Lendo ZIP" : format === "tar" ? "Lendo TAR" : "Descompactando TAR.GZ"} no navegador`, progress: 0, processedFileCount: 0, relevantFileCount: 0, bytesRead: 0, totalBytes: file.size }, true);
   const update = (bytesRead: number) => emitProgress({ step: 3, stage: "Mapeando relatórios técnicos", progress: Math.round((bytesRead / file.size) * 100), processedFileCount: processed, relevantFileCount: relevant, bytesRead, totalBytes: file.size, analyzedFileCount: processed });
-  const paths = format === "tar.gz" ? await inspectTarGz(file, visit, shouldInspect, update, plan) : await inspectZip(file, visit, shouldInspect, update, plan);
+  const paths = format === "tar.gz" ? await inspectTarGz(file, visit, shouldInspect, update, plan) : format === "tar" ? await inspectTar(file, visit, shouldInspect, update, plan) : await inspectZip(file, visit, shouldInspect, update, plan);
   if (cancelled) return;
   emitProgress({ step: 5, stage: "Organizando o resultado técnico", progress: 100, processedFileCount: processed, relevantFileCount: relevant, bytesRead: file.size, totalBytes: file.size, discoveredFileCount: paths.length, analyzedFileCount: processed }, true);
   correlateEvidence(evidence);
