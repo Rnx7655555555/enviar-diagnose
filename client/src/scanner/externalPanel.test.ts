@@ -33,10 +33,10 @@ describe("triagem de painel externo", () => {
     expect(evaluateExternalPanel(profile, 1).status).toBe("yes");
   });
 
-  it("reconhece ferramenta externa cadastrada por bundle completo sem chamá-la de cheat do Free Fire", () => {
+  it("ignora gg.delta.bz por ser identificador do Delta/Roblox, não External de Free Fire", () => {
     const findings = findExternalPanelSignals("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1", "MIInstallableBundle ID=gg.delta.bz");
-    expect(findings[0]?.label).toContain("Delta Executor");
-    expect(evaluateExternalPanel(findings, 1).summary).toContain("não atribui uso de cheat a um jogo específico");
+    expect(findings).toEqual([]);
+    expect(evaluateExternalPanel(findings, 1).status).toBe("no");
   });
 
   it("não confirma um nome técnico de painel encontrado em uma fonte isolada", () => {

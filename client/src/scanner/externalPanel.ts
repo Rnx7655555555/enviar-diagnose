@@ -11,11 +11,11 @@ const externalToolBundleIds = new Map<string, KnownTool>([
   ["com.opa334.trollstorepersistencehelper", { label: "TrollStore Persistence Helper", family: "instalador", rule: "Bundle ID completo de componente de instalação externa reconhecido" }],
   ["com.esign.esign", { label: "ESign", family: "assinatura", rule: "Bundle ID completo de ferramenta de assinatura de IPA reconhecida" }],
   ["com.usescarlet.ios", { label: "Scarlet", family: "instalador", rule: "Bundle ID completo de instalador externo reconhecido" }],
-  ["gg.delta.bz", { label: "Delta Executor", family: "ferramenta", rule: "Bundle ID completo de ferramenta externa reconhecida" }],
 ]);
 
 const expectedSourceKinds: SourceKind[] = ["instalacao", "processos", "inicializacao", "atividade"];
 const freeFireBundleIds = new Set(["com.dts.freefireth"]);
+const robloxBundleIds = new Set(["gg.delta.bz"]);
 
 function normalizedPath(path: string) { return path.replace(/\\/g, "/").toLocaleLowerCase(); }
 function normalized(value: string) { return value.trim().toLocaleLowerCase(); }
@@ -81,7 +81,9 @@ export function findExternalPanelSignals(sourcePath: string, text: string): Exte
   if (!sourceKind || !text) return [];
   const found: ExternalPanelFinding[] = [];
   for (const bundleId of bundleIdentifiers(text)) {
-    const tool = externalToolBundleIds.get(normalized(bundleId));
+    const normalizedBundleId = normalized(bundleId);
+    if (robloxBundleIds.has(normalizedBundleId)) continue;
+    const tool = externalToolBundleIds.get(normalizedBundleId);
     const contexts = sourceKind === "instalacao" ? installationContexts(text, bundleId) : [];
     const context = contexts.at(0);
     if (tool) found.push({ id: `known-tool-${normalized(bundleId)}`, family: tool.family, sourceKind, sourcePath, indicator: bundleId, label: `Ferramenta externa reconhecida: ${tool.label}`, assessment: "confirmada", matchType: "IDENTIFICADOR COMPLETO", rule: tool.rule, context });

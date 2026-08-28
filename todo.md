@@ -100,3 +100,4 @@
 - [x] Publicar a ampliação da triagem no GitHub Pages e validar a versão atualizada.
 - [x] Corrigir e testar a contagem de entradas TAR na cobertura técnica, sem duplicar métricas no relatório.
 - [x] Publicar e validar a correção da cobertura TAR e o suporte a TAR bruto no GitHub Pages.
+- [x] Corrigir a classificação de gg.delta.bz para Delta/Roblox, sem tratá-lo como External de Free Fire, e publicar a atualização.
