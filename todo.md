@@ -93,10 +93,10 @@
 - [x] Adicionar estratégia adaptativa de chunks e progresso real baseado em bytes e arquivos processados.
 - [x] Garantir cancelamento seguro, limpeza de Worker e mensagens técnicas claras para capacidade insuficiente.
 - [x] Ajustar a experiência para Safari/iPhone sem depender de APIs experimentais.
-- [ ] Validar regressões de proxy/external e cenários de arquivo grande, depois publicar no GitHub Pages.
+- [x] Validar regressões de proxy/external e cenários de arquivo grande, depois publicar no GitHub Pages.
 - [x] Mapear no arquivo autorizado evidências estruturadas de ESign, sideload e distribuição não-App-Store.
 - [x] Adicionar a detecção conservadora de ESign e instalação externa, sem usar nome de arquivo, texto genérico ou proxy como confirmação.
 - [x] Testar ESign, instalações oficiais e isolamento da análise de proxy.
 - [x] Publicar a ampliação da triagem no GitHub Pages e validar a versão atualizada.
 - [x] Corrigir e testar a contagem de entradas TAR na cobertura técnica, sem duplicar métricas no relatório.
-- [ ] Publicar e validar a correção da cobertura TAR e o suporte a TAR bruto no GitHub Pages.
+- [x] Publicar e validar a correção da cobertura TAR e o suporte a TAR bruto no GitHub Pages.
