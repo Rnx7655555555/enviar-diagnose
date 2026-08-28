@@ -88,6 +88,12 @@
 - [x] Exibir evidências completas de external/ESign/XIT/Free Fire como SIM, NÃO ou VERIFICAR MANUALMENTE.
 - [x] Criar testes anti-falso-positivo para textos, hashes, caminhos e termos genéricos.
 - [x] Validar a atualização no arquivo autorizado e publicar no GitHub Pages.
+- [x] Auditar leitura em chunks, buffers, Workers, cancelamento e limites atuais para SYSdiagnoses grandes.
+- [x] Remover a rejeição fixa por tamanho de arquivo, mantendo proteções estruturais contra arquivos perigosos.
+- [x] Adicionar estratégia adaptativa de chunks e progresso real baseado em bytes e arquivos processados.
+- [x] Garantir cancelamento seguro, limpeza de Worker e mensagens técnicas claras para capacidade insuficiente.
+- [x] Ajustar a experiência para Safari/iPhone sem depender de APIs experimentais.
+- [ ] Validar regressões de proxy/external e cenários de arquivo grande, depois publicar no GitHub Pages.
 - [ ] Mapear no arquivo autorizado evidências estruturadas de ESign, sideload e distribuição não-App-Store.
 - [ ] Adicionar a detecção conservadora de ESign e instalação externa, sem usar nome de arquivo, texto genérico ou proxy como confirmação.
 - [ ] Testar ESign, instalações oficiais e isolamento da análise de proxy.

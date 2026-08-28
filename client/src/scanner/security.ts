@@ -1,9 +1,4 @@
 export const scanLimits = {
-  maxUploadBytes: 350 * 1024 * 1024,
-  maxEntries: 15_000,
-  maxExpandedBytes: 1_200 * 1024 * 1024,
-  maxRelevantFileBytes: 6 * 1024 * 1024,
-  workerChunkBytes: 512 * 1024,
   maxTreeNodes: 2_000,
 } as const;
 
@@ -33,9 +28,7 @@ export async function detectArchiveFormat(file: File): Promise<ArchiveFormat> {
 }
 
 export function assertFileAccepted(file: File) {
-  const name = file.name.toLowerCase();
-  if (!name.endsWith(".tar.gz") && !name.endsWith(".tgz") && !name.endsWith(".zip")) throw new Error("Use um arquivo .tar.gz, .tgz ou .zip.");
-  if (file.size <= 0 || file.size > scanLimits.maxUploadBytes) throw new Error("O arquivo precisa ter entre 1 byte e 350 MB.");
+  if (file.size <= 0) throw new Error("O arquivo está vazio ou incompleto.");
 }
 
 export function buildTree(paths: Array<{ path: string; size?: number }>) {

@@ -103,6 +103,26 @@ export type ExternalPanelReport = {
   coverage: ExternalPanelCoverage;
 };
 
+export type ScanCoverage = {
+  totalFiles: number;
+  analyzedFiles: number;
+  ignoredFiles: number;
+  plistFiles: number;
+  profileFiles: number;
+  certificateFiles: number;
+  identifiersExtracted: number;
+  rulesExecuted: number;
+  evidenceCount: number;
+  limitedFiles: number;
+};
+
+export type ScanCapacity = {
+  level: "low" | "medium" | "high";
+  chunkBytes: number;
+  relevantFileBudget: number;
+  fallback: boolean;
+};
+
 export type ScanReport = {
   id: string;
   fileName: string;
@@ -117,6 +137,8 @@ export type ScanReport = {
   manualReviews: ManualReview[];
   jailbreak: JailbreakReport;
   externalPanel: ExternalPanelReport;
+  coverage: ScanCoverage;
+  capacity: ScanCapacity;
   recommendations: string[];
   limitations: string[];
   tree: ArchiveNode[];
@@ -131,6 +153,9 @@ export type WorkerProgress = {
   relevantFileCount: number;
   bytesRead: number;
   totalBytes: number;
+  discoveredFileCount?: number;
+  analyzedFileCount?: number;
+  currentFile?: string;
 };
 
 export type WorkerEvent = WorkerProgress | { type: "complete"; report: ScanReport } | { type: "error"; message: string; code?: string } | { type: "cancelled" };
