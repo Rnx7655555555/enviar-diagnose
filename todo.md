@@ -81,5 +81,5 @@
 - [x] Reforçar a triagem de painel externo com regras verificáveis e testes de isolamento contra falsos positivos.
 - [ ] Validar o reforço com os arquivos autorizados e publicar a atualização no GitHub/Netlify.
 - [x] Configurar o build do scanner para ser publicado pelo GitHub Pages.
-- [ ] Adicionar deploy automático do GitHub Pages a cada atualização na branch master.
-- [ ] Validar a publicação do scanner no GitHub Pages sem alterar a análise local.
+- [x] Adicionar deploy automático do GitHub Pages a cada atualização na branch master.
+- [x] Validar a publicação do scanner no GitHub Pages sem alterar a análise local.
