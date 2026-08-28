@@ -87,7 +87,7 @@
 - [x] Implementar correlação de identificadores completos, perfis, certificados e assinaturas sem alterar proxy.
 - [x] Exibir evidências completas de external/ESign/XIT/Free Fire como SIM, NÃO ou VERIFICAR MANUALMENTE.
 - [x] Criar testes anti-falso-positivo para textos, hashes, caminhos e termos genéricos.
-- [ ] Validar a atualização no arquivo autorizado e publicar no GitHub Pages.
+- [x] Validar a atualização no arquivo autorizado e publicar no GitHub Pages.
 - [ ] Mapear no arquivo autorizado evidências estruturadas de ESign, sideload e distribuição não-App-Store.
 - [ ] Adicionar a detecção conservadora de ESign e instalação externa, sem usar nome de arquivo, texto genérico ou proxy como confirmação.
 - [ ] Testar ESign, instalações oficiais e isolamento da análise de proxy.
