@@ -26,6 +26,7 @@ export function externalPanelSourceKind(path: string): SourceKind | null {
   if (value.endsWith("/ps.txt") || value === "ps.txt") return "processos";
   if (value.endsWith("/summaries/launchdlogs.log")) return "inicializacao";
   if (value.endsWith("/runningboard/runningboard_state.log")) return "atividade";
+  if (/(^|\/)accessibilityprefs\/.+\.plist$/i.test(value)) return "acessibilidade";
   if (value.endsWith(".mobileprovision") || value.endsWith(".provisionprofile") || value.endsWith(".cer") || value.endsWith(".crt")) return "assinatura";
   return null;
 }
@@ -51,7 +52,8 @@ function bundleIdentifiers(text: string) {
     /(?:MIInstallableBundle ID=|identifier\s+|bundle(?:\s+identifier|\s+id)?\s*[=:]\s*)([A-Za-z0-9][A-Za-z0-9.-]{2,180})/gi,
     /\[([A-Za-z0-9][A-Za-z0-9.-]{2,180})\/[A-F0-9-]{8,}/gi,
     /(?:application-identifier|application identifier)\s*[=:]\s*(?:[A-Z0-9]{10}\.)?([A-Za-z0-9][A-Za-z0-9.-]{2,180})/gi,
-    /<key>\s*application-identifier\s*<\/key>\s*<string>\s*(?:[A-Z0-9]{10}\.)?([A-Za-z0-9][A-Za-z0-9.-]{2,180})\s*<\/string>/gi,
+    /(?:CFBundleIdentifier|bundle identifier)\s*[=:]\s*([A-Za-z0-9][A-Za-z0-9.-]{2,180})/gi,
+    /<key>\s*(?:application-identifier|CFBundleIdentifier)\s*<\/key>\s*<string>\s*(?:[A-Z0-9]{10}\.)?([A-Za-z0-9][A-Za-z0-9.-]{2,180})\s*<\/string>/gi,
   ];
   for (const pattern of patterns) {
     let match: RegExpExecArray | null = null;

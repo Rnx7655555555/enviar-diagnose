@@ -101,3 +101,4 @@
 - [x] Corrigir e testar a contagem de entradas TAR na cobertura técnica, sem duplicar métricas no relatório.
 - [x] Publicar e validar a correção da cobertura TAR e o suporte a TAR bruto no GitHub Pages.
 - [x] Corrigir a classificação de gg.delta.bz para Delta/Roblox, sem tratá-lo como External de Free Fire, e publicar a atualização.
+- [x] Detectar com.esign.esign em AccessibilityPrefs somente quando houver bundle completo em estrutura plist, preservando os isolamentos contra texto solto.

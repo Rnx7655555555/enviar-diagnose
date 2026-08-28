@@ -78,7 +78,7 @@ export type ExternalPanelResult = "no" | "yes" | "manual";
 export type ExternalPanelFinding = {
   id: string;
   family: "instalador" | "painel" | "distribuicao" | "ferramenta" | "assinatura";
-  sourceKind: "instalacao" | "processos" | "inicializacao" | "atividade" | "assinatura";
+  sourceKind: "instalacao" | "processos" | "inicializacao" | "atividade" | "assinatura" | "acessibilidade";
   sourcePath: string;
   indicator: string;
   label: string;

@@ -11,6 +11,22 @@ describe("triagem de painel externo", () => {
     expect(isExternalPanelSourcePath("sysdiagnose/Logs/McState/Shared/MCSettingsEvents.plist")).toBe(false);
   });
 
+  it("reconhece AccessibilityPrefs como fonte estruturada, mas não qualquer plist", () => {
+    expect(isExternalPanelSourcePath("sysdiagnose_2026/logs/AccessibilityPrefs/com.apple.VoiceOverTouch.plist")).toBe(true);
+    expect(isExternalPanelSourcePath("sysdiagnose/logs/OtherPrefs/com.apple.VoiceOverTouch.plist")).toBe(false);
+  });
+
+  it("confirma ESign em AccessibilityPrefs somente por CFBundleIdentifier completo estruturado", () => {
+    const source = "sysdiagnose_2026/logs/AccessibilityPrefs/com.apple.VoiceOverTouch.plist";
+    const xml = "<key>CFBundleIdentifier</key><string>com.esign.esign</string>";
+    const findings = findExternalPanelSignals(source, xml);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.label).toContain("ESign");
+    expect(findings[0]?.sourceKind).toBe("acessibilidade");
+    expect(evaluateExternalPanel(findings, 1).status).toBe("yes");
+    expect(findExternalPanelSignals(source, "texto esign com.esign.esign sem chave plist")).toEqual([]);
+  });
+
   it("ignora o bundle oficial do jogo e o aplicativo ExitLag", () => {
     const source = "sysdiagnose/logs/MobileInstallation/mobile_installation.log.1";
     const text = "MIInstallableBundle ID=com.dts.freefireth\nMIInstallableBundle ID=com.exitlag.gameboosterios";
