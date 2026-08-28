@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { assessExternalPanelCoverage, evaluateExternalPanel, findExternalPanelSignals, isExternalPanelSourcePath } from "./externalPanel";
 
 describe("triagem de painel externo", () => {
-  it("aceita somente relatórios fechados de instalação, processos e inicialização", () => {
+  it("aceita somente relatórios fechados de instalação, execução, inicialização e assinaturas", () => {
     expect(isExternalPanelSourcePath("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1")).toBe(true);
     expect(isExternalPanelSourcePath("sysdiagnose/ps.txt")).toBe(true);
     expect(isExternalPanelSourcePath("sysdiagnose/RunningBoard/RunningBoard_state.log")).toBe(true);
+    expect(isExternalPanelSourcePath("sysdiagnose/profiles/external.mobileprovision")).toBe(true);
     expect(isExternalPanelSourcePath("sysdiagnose/logs/WiFi/network.log")).toBe(false);
     expect(isExternalPanelSourcePath("sysdiagnose/Logs/McState/Shared/MCSettingsEvents.plist")).toBe(false);
   });
@@ -16,23 +17,53 @@ describe("triagem de painel externo", () => {
     expect(findExternalPanelSignals(source, text)).toEqual([]);
   });
 
-  it("registra instalador externo como revisão, sem confirmar painel", () => {
+  it("confirma ferramenta externa por bundle identifier completo, sem atribuir uso em jogo", () => {
     const source = "sysdiagnose/logs/MobileInstallation/mobile_installation.log.1";
     const findings = findExternalPanelSignals(source, "MIInstallableBundle ID=com.rileytestut.AltStore");
     expect(findings[0]?.family).toBe("instalador");
-    expect(evaluateExternalPanel(findings, 1).status).toBe("manual");
+    expect(findings[0]?.assessment).toBe("confirmada");
+    expect(evaluateExternalPanel(findings, 1).status).toBe("yes");
+  });
+
+  it("reconhece ESign apenas por identificador completo ou application identifier estruturado", () => {
+    const installation = findExternalPanelSignals("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1", "MIInstallableBundle ID=com.esign.esign");
+    const profile = findExternalPanelSignals("sysdiagnose/profiles/test.mobileprovision", "<key>application-identifier</key><string>ABCDE12345.com.esign.esign</string>");
+    expect(installation[0]?.label).toContain("ESign");
+    expect(profile[0]?.matchType).toBe("IDENTIFICADOR COMPLETO");
+    expect(evaluateExternalPanel(profile, 1).status).toBe("yes");
+  });
+
+  it("reconhece ferramenta externa cadastrada por bundle completo sem chamá-la de cheat do Free Fire", () => {
+    const findings = findExternalPanelSignals("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1", "MIInstallableBundle ID=gg.delta.bz");
+    expect(findings[0]?.label).toContain("Delta Executor");
+    expect(evaluateExternalPanel(findings, 1).summary).toContain("não atribui uso de cheat a um jogo específico");
   });
 
   it("não confirma um nome técnico de painel encontrado em uma fonte isolada", () => {
     const findings = findExternalPanelSignals("sysdiagnose/ps.txt", "bundle identifier = com.example.freefire.cheat.panel");
     expect(findings[0]?.family).toBe("painel");
+    expect(findings[0]?.assessment).toBe("revisar");
     expect(evaluateExternalPanel(findings, 1).status).toBe("manual");
   });
 
-  it("confirma somente com famílias diferentes e fontes independentes", () => {
+  it("ignora external, esign e xit quando aparecem apenas em texto, hash ou caminho sem estrutura", () => {
+    const source = "sysdiagnose/logs/MobileInstallation/mobile_installation.log.1";
+    const text = "nota: external esign xit\nhash=aff0e5ign\ncaminho=/tmp/external/xit";
+    expect(findExternalPanelSignals(source, text)).toEqual([]);
+  });
+
+  it("marca instalação não-App-Store do bundle exato do Free Fire apenas para revisão", () => {
+    const source = "sysdiagnose/logs/MobileInstallation/mobile_installation.log.1";
+    const text = "MIInstallableBundle ID=com.dts.freefireth\nMIInstallationDomainDeveloper\nDistributor: Developer";
+    const findings = findExternalPanelSignals(source, text);
+    expect(findings[0]?.family).toBe("distribuicao");
+    expect(evaluateExternalPanel(findings, 1).status).toBe("manual");
+  });
+
+  it("confirma sinais de painel apenas com famílias diferentes e fontes independentes", () => {
     const findings = [
       ...findExternalPanelSignals("sysdiagnose/ps.txt", "bundle identifier = com.example.freefire.cheat.panel"),
-      ...findExternalPanelSignals("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1", "MIInstallableBundle ID=com.rileytestut.AltStore"),
+      ...findExternalPanelSignals("sysdiagnose/logs/MobileInstallation/mobile_installation.log.1", "MIInstallableBundle ID=com.dts.freefireth\nMIInstallationDomainDeveloper\nDistributor: Developer"),
     ];
     expect(evaluateExternalPanel(findings, 2).status).toBe("yes");
   });

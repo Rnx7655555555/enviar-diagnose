@@ -83,3 +83,12 @@
 - [x] Configurar o build do scanner para ser publicado pelo GitHub Pages.
 - [x] Adicionar deploy automático do GitHub Pages a cada atualização na branch master.
 - [x] Validar a publicação do scanner no GitHub Pages sem alterar a análise local.
+- [x] Mapear fontes estruturadas de external, ESign, XIT, Free Fire, certificados e provisioning no SYSdiagnose autorizado.
+- [x] Implementar correlação de identificadores completos, perfis, certificados e assinaturas sem alterar proxy.
+- [x] Exibir evidências completas de external/ESign/XIT/Free Fire como SIM, NÃO ou VERIFICAR MANUALMENTE.
+- [x] Criar testes anti-falso-positivo para textos, hashes, caminhos e termos genéricos.
+- [ ] Validar a atualização no arquivo autorizado e publicar no GitHub Pages.
+- [ ] Mapear no arquivo autorizado evidências estruturadas de ESign, sideload e distribuição não-App-Store.
+- [ ] Adicionar a detecção conservadora de ESign e instalação externa, sem usar nome de arquivo, texto genérico ou proxy como confirmação.
+- [ ] Testar ESign, instalações oficiais e isolamento da análise de proxy.
+- [ ] Publicar a ampliação da triagem no GitHub Pages e validar a versão atualizada.

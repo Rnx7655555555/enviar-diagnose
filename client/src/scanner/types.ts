@@ -77,11 +77,15 @@ export type ExternalPanelResult = "no" | "yes" | "manual";
 
 export type ExternalPanelFinding = {
   id: string;
-  family: "instalador" | "painel" | "distribuicao";
-  sourceKind: "instalacao" | "processos" | "inicializacao" | "atividade";
+  family: "instalador" | "painel" | "distribuicao" | "ferramenta" | "assinatura";
+  sourceKind: "instalacao" | "processos" | "inicializacao" | "atividade" | "assinatura";
   sourcePath: string;
   indicator: string;
   label: string;
+  assessment: "confirmada" | "revisar";
+  matchType: "IDENTIFICADOR COMPLETO" | "CONTEXTO DE INSTALAÇÃO" | "SINAL ESTRUTURADO";
+  rule: string;
+  context?: string;
 };
 
 export type ExternalPanelCoverage = {
